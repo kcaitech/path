@@ -1,5 +1,5 @@
 import { Bezier } from "./bezier";
-import { Point, utils } from "./utils";
+import { utils } from "./utils";
 
 /**
  * Poly Bezier

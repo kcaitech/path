@@ -6,7 +6,8 @@
   This code is MIT licensed.
 **/
 
-import { BBox, BBoxAxis, Point, PointT, utils } from "./utils";
+import { Point } from "./types";
+import { BBox, BBoxAxis, PointT, utils } from "./utils";
 
 // math-inlining.
 const { abs, min, max, cos, sin, acos, sqrt } = Math;
@@ -149,7 +150,7 @@ export class Bezier {
     _t1 = 0;
     _t2 = 1;
     private _linear: boolean;
-    private dimlen = 2;
+    // private dimlen = 2;
 
     virtual?: boolean;
 

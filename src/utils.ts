@@ -1,5 +1,7 @@
 // import { Bezier } from "./bezier.js";
 
+import { Point, Line } from "./types";
+
 // math-inlining.
 const { abs, cos, sin, acos, atan2, sqrt, pow } = Math;
 
@@ -20,15 +22,7 @@ const pi = Math.PI,
     // a zero coordinate, which is surprisingly useful
     ZERO = { x: 0, y: 0, z: 0 };
 
-export type Point = {
-    x: number;
-    y: number;
-}
 
-export type Line = {
-    p1: Point,
-    p2: Point
-}
 
 export type PointT = Point & { t: number }
 
@@ -156,8 +150,7 @@ export const utils = {
         }
 
         // quadratic/cubic curve?
-        if (order < 4) 
-        {
+        if (order < 4) {
             let mt2 = mt * mt,
                 t2 = t * t,
                 a,
