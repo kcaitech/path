@@ -1,0 +1,10 @@
+test
+*.test.ts
+*.test.js
+*.md
+.*
+tsconfig.json
+README.md
+src
+package-lock.json
+rollup.config.*
