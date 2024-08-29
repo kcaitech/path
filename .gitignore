@@ -1,2 +1,7 @@
 node_modules
+dist
+package-lock.json
 .VSCodeCounter
+.DS_Store
+yarn.lock
+.idea

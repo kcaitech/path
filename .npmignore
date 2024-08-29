@@ -8,3 +8,4 @@ README.md
 src
 package-lock.json
 rollup.config.*
+.VSCodeCounter
