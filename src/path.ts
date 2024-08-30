@@ -1,6 +1,7 @@
 import { Bezier } from "./bezier";
+import { Grid } from "./grid";
 import { Line } from "./line";
-import { Point } from "./types";
+import { Point, Rect } from "./types";
 
 type PathCmd =
     { type: "L", x: number, y: number } |
@@ -23,10 +24,7 @@ export class Path {
 
     _paths: PathA[] = []
 
-    // _grid?: Grid<{
-    //     subject: {},
-    //     clip: {}
-    // }> // for path op
+    _grid?: Grid<{ bbox(): Rect }> // for path op
 
     addPath(path: Path) {
         this._paths.push(...path._paths);

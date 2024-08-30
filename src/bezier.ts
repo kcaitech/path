@@ -416,10 +416,12 @@ export class Bezier {
         return new Bezier(np);
     }
 
+    // 一阶导数
     derivative(t: number) {
         return utils.compute(t, this.dpoints[0]);
     }
 
+    // 二阶导数
     dderivative(t: number) {
         return utils.compute(t, this.dpoints[1]);
     }

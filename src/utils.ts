@@ -41,6 +41,7 @@ function p2pt(p: Point, t: number) {
     return _p;
 }
 
+// Legendre-Gauss abscissae with n=24 (x_i values, defined at i=n as the roots of the nth order Legendre polynomial Pn(x))
 const Tvalues: number[] = [
     -0.0640568928626056260850430826247450385909,
     0.0640568928626056260850430826247450385909,
@@ -98,7 +99,6 @@ const Cvalues: number[] = [
 
 // Bezier utility functions
 export const utils = {
-    // Legendre-Gauss abscissae with n=24 (x_i values, defined at i=n as the roots of the nth order Legendre polynomial Pn(x))
 
 
     arcfn: function (t: number, derivativeFn: ((t: number) => Point)) {
@@ -265,8 +265,8 @@ export const utils = {
         const dpoints: Point[][] = [];
         for (let p = points, d = p.length, c = d - 1; d > 1; d--, c--) {
             const list: Point[] = [];
-            for (let j = 0, dpt; j < c; j++) {
-                dpt = {
+            for (let j = 0; j < c; j++) {
+                const dpt = {
                     x: c * (p[j + 1].x - p[j].x),
                     y: c * (p[j + 1].y - p[j].y),
                 };
