@@ -23,17 +23,17 @@ export class Path {
 
     _paths: PathA[] = []
 
-    _grid?: Grid<{
-        subject: {},
-        clip: {}
-    }> // for path op
+    // _grid?: Grid<{
+    //     subject: {},
+    //     clip: {}
+    // }> // for path op
 
     addPath(path: Path) {
         this._paths.push(...path._paths);
         // update grid
-        if (this._grid) {
-            // todo
-        }
+        // if (this._grid) {
+        //     // todo
+        // }
     }
 
     op(path: Path, type: OpType) {
