@@ -1,6 +1,6 @@
 // import { Bezier } from "./bezier.js";
 
-import { Point, Line } from "./types";
+import { Point, Line } from "./basic";
 
 // math-inlining.
 const { abs, cos, sin, acos, atan2, sqrt, pow } = Math;
@@ -20,7 +20,7 @@ const pi = Math.PI,
     nMax = Number.MAX_SAFE_INTEGER || 9007199254740991,
     nMin = Number.MIN_SAFE_INTEGER || -9007199254740991,
     // a zero coordinate, which is surprisingly useful
-    ZERO = { x: 0, y: 0, z: 0 };
+    ZERO = { x: 0, y: 0 };
 
 
 
@@ -346,9 +346,9 @@ export const utils = {
             dy1 = v1.y - o.y,
             dx2 = v2.x - o.x,
             dy2 = v2.y - o.y,
-            cross = dx1 * dy2 - dy1 * dx2,
-            dot = dx1 * dx2 + dy1 * dy2;
-        return atan2(cross, dot);
+            cross = dx1 * dy2 - dy1 * dx2, // 叉积 外积 法向量
+            dot = dx1 * dx2 + dy1 * dy2; // 点积 内积
+        return atan2(cross, dot); // [-Pi, Pi]
     },
 
     // round as string, to avoid rounding errors
@@ -491,12 +491,12 @@ export const utils = {
         return points.map(d);
     },
 
-    roots: function (points: Point[], line: { p1: { x: number, y: number }, p2: { x: number, y: number } }): number[] {
+    roots: function (points: Point[], line?: Line): number[] {
         line = line || { p1: { x: 0, y: 0 }, p2: { x: 1, y: 0 } };
 
         const order = points.length - 1;
         const aligned = utils.align(points, line);
-        const reduce = function (t: number) {
+        const accept = function (t: number) {
             return 0 <= t && t <= 1;
         };
 
@@ -510,9 +510,9 @@ export const utils = {
                     m2 = -a + b,
                     v1 = -(m1 + m2) / d,
                     v2 = -(-m1 + m2) / d;
-                return [v1, v2].filter(reduce);
+                return [v1, v2].filter(accept);
             } else if (b !== c && d === 0) {
-                return [(2 * b - c) / (2 * b - 2 * c)].filter(reduce);
+                return [(2 * b - c) / (2 * b - 2 * c)].filter(accept);
             }
             return [];
         }
@@ -537,16 +537,16 @@ export const utils = {
                     return [];
                 }
                 // linear solution:
-                return [-c / b].filter(reduce);
+                return [-c / b].filter(accept);
             }
             // quadratic solution:
             const q = sqrt(b * b - 4 * a * c),
                 a2 = 2 * a;
-            return [(q - b) / a2, (-b - q) / a2].filter(reduce);
+            return [(q - b) / a2, (-b - q) / a2].filter(accept);
         }
 
         // at this point, we know we need a cubic solution:
-
+        // Cardano's algorithm
         a /= d;
         b /= d;
         c /= d;
@@ -570,17 +570,17 @@ export const utils = {
             x1 = t1 * cos(phi / 3) - a / 3;
             x2 = t1 * cos((phi + tau) / 3) - a / 3;
             x3 = t1 * cos((phi + 2 * tau) / 3) - a / 3;
-            return [x1, x2, x3].filter(reduce);
+            return [x1, x2, x3].filter(accept);
         } else if (discriminant === 0) {
             u1 = q2 < 0 ? crt(-q2) : -crt(q2);
             x1 = 2 * u1 - a / 3;
             x2 = -u1 - a / 3;
-            return [x1, x2].filter(reduce);
+            return [x1, x2].filter(accept);
         } else {
             const sd = sqrt(discriminant);
             u1 = crt(-q2 + sd);
             v1 = crt(q2 + sd);
-            return [u1 - v1 - a / 3].filter(reduce);
+            return [u1 - v1 - a / 3].filter(accept);
         }
     },
 

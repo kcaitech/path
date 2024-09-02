@@ -12,7 +12,7 @@ PathOp实现方案
     a. difference: Subject的线段在Clip内标记删除，Clip的线段在Subject外标记删除
     b. union: Subject的线段在Clip内标记删除，Clip的线段在Subject内标记删除
     c. intersection: Subject的线段在Clip外标记删除，Clip的线段在Subject外标记删除
-    d. exclude(Xor): difference(Subject, Clip) + difference(Clip, Subject)；后面不再讨论
+    d. exclude(Xor): difference(Subject, Clip) + difference(Clip, Subject)；
 6. 重新连接路径
     在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path
     difference: 遍历完所有未删除的Subject

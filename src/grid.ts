@@ -1,4 +1,4 @@
-import { Rect } from "./types"
+import { Rect } from "./basic"
 
 interface _T {
     bbox(): Rect

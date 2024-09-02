@@ -1,7 +1,7 @@
 import { Bezier } from "./bezier";
 import { Grid } from "./grid";
 import { Line } from "./line";
-import { Point, Rect } from "./types";
+import { Point, Rect } from "./basic";
 
 type PathCmd =
     { type: "L", x: number, y: number } |

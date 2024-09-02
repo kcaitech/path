@@ -1,9 +1,11 @@
-import { Point, Rect } from "./types";
+import { Point, Rect, Segment } from "./basic";
 
-export class Line {
+export class Line implements Segment {
     p1: Point
     p2: Point
     _bbox: Rect
+    color?: number
+    origin?: { segment: Segment; t0: number; t1: number; };
 
     constructor(p1: Point, p2: Point)
     constructor(x1: number, y1: number, x2: number, y2: number)
@@ -35,7 +37,14 @@ export class Line {
         return [new Line(this.p1.x, this.p1.y, x, y), new Line(x, y, this.p2.x, this.p2.y)]
     }
 
-    get type() {
+    get type(): "L" {
         return "L"
+    }
+
+    intersect(seg: Segment): { t0: number; t1: number; }[] {
+        if (seg.type !== 'L') return seg.intersect(this);
+        // line intersect
+
+        throw new Error("Method not implemented.");
     }
 }

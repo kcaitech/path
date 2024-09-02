@@ -6,7 +6,7 @@
   This code is MIT licensed.
 **/
 
-import { Point } from "./types";
+import { Point } from "./basic";
 import { BBox, BBoxAxis, PointT, utils } from "./utils";
 
 // math-inlining.
@@ -183,7 +183,7 @@ export class Bezier {
         this.dpoints = utils.derive(this.points);
         // this.computedirection();
         const angle = utils.angle(points[0], points[this.order], points[1]);
-        this.clockwise = angle > 0;
+        this.clockwise = angle > 0; // 计算法向量就行？
     }
 
     update() {
@@ -495,18 +495,18 @@ export class Bezier {
 
     hull(t: number) {
         let p = this.points;
-        let _p: Point[] = [];
-        const q: Point[] = [];
-        let idx = 0;
-        q[idx++] = p[0];
-        q[idx++] = p[1];
-        q[idx++] = p[2];
-        if (this.order === 3) {
-            q[idx++] = p[3];
-        }
+        // let _p: Point[] = [];
+        const q: Point[] = [...p];
+        let idx = p.length;
+        // q[idx++] = p[0];
+        // q[idx++] = p[1];
+        // q[idx++] = p[2];
+        // if (this.order === 3) {
+        //     q[idx++] = p[3];
+        // }
         // we lerp between all points at each iteration, until we have 1 point left.
         while (p.length > 1) {
-            _p = [];
+            const _p = [];
             for (let i = 0, l = p.length - 1; i < l; i++) {
                 const pt = utils.lerp(t, p[i], p[i + 1]);
                 q[idx++] = pt;
@@ -514,7 +514,7 @@ export class Bezier {
             }
             p = _p;
         }
-        return q;
+        return q; // 最后一个即为Bezier(t)
     }
 
     _split(t1: number, t2?: number): { left: Bezier, right: Bezier } {
@@ -599,7 +599,7 @@ export class Bezier {
         );
 
         result.values = roots.sort(utils.numberSort).filter(function (v, idx) {
-            return roots.indexOf(v) === idx;
+            return roots.indexOf(v) === idx; // 去重
         });
 
         return result;

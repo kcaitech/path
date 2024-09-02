@@ -32,3 +32,16 @@ export function contains_rect(lhs: Rect, rhs: Rect): boolean {
     return contains_range(lhs.x, lhs.x + lhs.w, rhs.x, rhs.x + rhs.w) &&
         contains_range(lhs.y, lhs.y + lhs.h, rhs.y, rhs.y + rhs.h);
 }
+
+export type Segment = {
+    origin?: {
+        segment: Segment,
+        t0: number,
+        t1: number
+    },
+    bbox(): Rect;
+    get type(): 'L' | 'Q' | 'C'
+    color?: number;
+
+    intersect(seg: Segment): {t0: number, t1: number}[];
+}
