@@ -591,15 +591,12 @@ export class Bezier {
                     p = this.dpoints[1].map(mfn);
                     result[dim] = result[dim].concat(utils.droots(p));
                 }
-                result[dim] = result[dim].filter(function (t) {
-                    return t >= 0 && t <= 1;
-                });
-                roots = roots.concat(result[dim].sort(utils.numberSort));
+                roots = roots.concat(result[dim]);
             }
         );
 
         result.values = roots.sort(utils.numberSort).filter(function (v, idx) {
-            return roots.indexOf(v) === idx; // 去重
+            return v >= 0 && v <= 1 && roots.indexOf(v) === idx; // 去重
         });
 
         return result;

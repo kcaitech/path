@@ -134,7 +134,7 @@ export class Bezier2 extends Bezier {
         const accept = (t: number, i: number) => {
             return t >= 0 && t <= 1 && ret.indexOf(t) === i;
         }
-        return ret.filter(accept)
+        return ret.filter(accept).sort((a, b) => a - b)
     }
 }
 
@@ -213,6 +213,6 @@ export class Bezier3 extends Bezier {
         const accept = (t: number, i: number) => {
             return t >= 0 && t <= 1 && ret.indexOf(t) === i;
         }
-        return ret.filter(accept)
+        return ret.filter(accept).sort((a, b) => a - b)
     }
 }
