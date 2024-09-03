@@ -1,5 +1,5 @@
 import { Line } from "./line";
-import { float_accuracy, Point, Rect, Segment } from "./basic"
+import { float_accuracy, Point, Rect, rect_contains_point, Segment } from "./basic"
 
 const ZERO = { x: 0, y: 0 };
 
@@ -142,6 +142,9 @@ export class Bezier2 extends Bezier {
     }
 
     locate(p: Point): number[] {
+        // 判断bbox包含p
+        if (!rect_contains_point(this.bbox(), p)) return [];
+
         // P0*(1-t)^2 + 2*P1*(1-t)*t + P2*t^2 = p, 求t
         // a=P0 + P2
         // b=-2*(P0+P1)
@@ -296,6 +299,9 @@ export class Bezier3 extends Bezier {
     }
 
     locate(p: Point): number[] {
+        // 判断bbox包含p
+        if (!rect_contains_point(this.bbox(), p)) return [];
+
         // f(t) = P0*(1-t)^3 + 3*P1*(1-t)^2*t + 3*P2*(1-t)*t^2 + P3*t^3 = p, 求t
         // 求a*t^3 + b*t^2 + c*t + d = 0的根
 
