@@ -25,7 +25,7 @@ export function contains_range(lx0: number, lx1: number, rx0: number, rx1: numbe
 }
 
 export function contains_point(lx0: number, lx1: number, rx0: number): boolean {
-    return lx0 <= rx0 && lx1 > rx0;
+    return lx0 <= rx0 && lx1 >= rx0;
 }
 
 export function intersect_rect(lhs: Rect, rhs: Rect): boolean {
@@ -55,4 +55,5 @@ export type Segment = {
 
     intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t3: number, t4: number } | { type: "intersect", t0: number, t1: number })[];
     locate(p: Point): number[];
+    split(t: number): Segment[];
 }

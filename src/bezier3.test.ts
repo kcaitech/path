@@ -1,3 +1,4 @@
+import { float_accuracy } from "./basic";
 import { Bezier3 } from "./bezier3";
 
 describe(`bezier3`, () => {
@@ -9,7 +10,7 @@ describe(`bezier3`, () => {
         expect(e[1]).toBe(1);
     })
     test('pointAt', () => {
-        
+
     })
     test('bbox', () => {
         const b = new Bezier3({ x: 330, y: 592 }, { x: 330, y: 557 }, { x: 315, y: 522 }, { x: 315, y: 485 });
@@ -20,9 +21,19 @@ describe(`bezier3`, () => {
         expect(bbox.h).toBe(592 - 485);
     })
     test('split', () => {
-        
+
     })
     test('intersect', () => {
-        
+
+    })
+    test('locate', () => {
+        const b = new Bezier3({ x: 330, y: 592 }, { x: 330, y: 557 }, { x: 315, y: 522 }, { x: 315, y: 485 });
+        const l0 = b.locate({ x: 330, y: 592 })
+        expect(l0.length).toBe(1);
+        expect(Math.abs(l0[0]) < float_accuracy).toBe(true);
+
+        const l1 = b.locate({ x: 315, y: 485 })
+        expect(l1.length).toBe(1);
+        expect(Math.abs(l1[0] - 1) < float_accuracy).toBe(true);
     })
 })

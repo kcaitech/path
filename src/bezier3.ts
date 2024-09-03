@@ -145,63 +145,65 @@ export class Bezier2 extends Bezier {
         // 判断bbox包含p
         if (!rect_contains_point(this.bbox(), p)) return [];
 
-        // P0*(1-t)^2 + 2*P1*(1-t)*t + P2*t^2 = p, 求t
-        // a=P0 + P2
+        // f(t) = P0*(1-t)^2 + 2*P1*(1-t)*t + P2*t^2 - p = 0, 求t
+        // a=P0 -2*P1 + P2
         // b=-2*(P0+P1)
-        // c=P0+2P1-p
+        // c=P0-p
+        // f(t) = a*t^2 + b*t + c
         const p0 = this.points[0];
         const p1 = this.points[1];
         const p2 = this.points[2];
         const a = (dim: 'x' | 'y') => {
-            return p0[dim] + p2[dim]
+            return p0[dim] - 2 * p1[dim] + p2[dim]
         }
         const b = (dim: 'x' | 'y') => {
             return -2 * (p0[dim] + p1[dim])
         }
         const c = (dim: 'x' | 'y') => {
-            return p0[dim] + 2 * p1[dim] - p[dim]
+            return p0[dim] - p[dim]
         }
 
-        const ax = a('x');
-        const bx = b('x');
-        const cx = c('x');
-
-        const ay = a('y');
-        const by = b('y');
-        const cy = c('y');
-
-        const dx = bx * bx - 4 * ax * cx;
-        const dy = by * by - 4 * ay * cy;
-
-        const retx: number[] = [];
-
-        if (ax === 0) {
-            if (bx !== 0) retx.push(cx / bx);
-        }
-        else if (dx === 0) {
-            retx.push(-bx / (2 * ax))
-        }
-        else if (dx > 0) {
-            const sqrt = Math.sqrt(dx);
-            retx.push((-bx + sqrt) / (2 * ax), (-bx - sqrt) / (2 * ax))
+        const fix = (t: number) => {
+            if (Math.abs(t) < float_accuracy) t = 0;
+            else if (Math.abs(t - 1) < float_accuracy) t = 1;
+            return t;
         }
 
-        const rety: number[] = [];
-        if (ay === 0) {
-            if (by !== 0) rety.push(cy / by);
-        }
-        else if (dy === 0) {
-            rety.push(-by / (2 * ay))
-        }
-        else if (dy > 0) {
-            const sqrt = Math.sqrt(dy);
-            rety.push((-by + sqrt) / (2 * ay), (-by - sqrt) / (2 * ay))
+        const resolve = (dim: 'x' | 'y') => {
+            const ax = a(dim);
+            const bx = b(dim);
+            const cx = c(dim);
+
+            const dx = bx * bx - 4 * ax * cx;
+
+            const retx: number[] = [];
+
+            if (ax === 0) {
+                if (bx !== 0) retx.push(cx / bx);
+            }
+            else if (dx === 0) {
+                retx.push(-bx / (2 * ax))
+            }
+            else if (dx > 0) {
+                const sqrt = Math.sqrt(dx);
+                retx.push((-bx + sqrt) / (2 * ax), (-bx - sqrt) / (2 * ax))
+            }
+
+            return retx.map(fix).filter((t) => t >= 0 && t <= 1);
         }
 
+        const retx = resolve('x');
+        if (retx.length === 0) return retx;
+
+        const rety = resolve('y');
+        if (rety.length === 0) return rety;
+
+        console.log(retx, rety)
         const accept = (t: number, i: number) => {
-            return t >= 0 && t <= 1 && rety.indexOf(t) === i && retx.find((v) => Math.abs(v - t) < float_accuracy);// 考虑误差
+            return rety.indexOf(t) === i && retx.find((v) => Math.abs(v - t) < float_accuracy) !== undefined;// 考虑误差
         }
-        return rety.filter(accept).sort((a, b) => a - b)
+
+        return rety.map(fix).filter(accept).sort((a, b) => a - b)
     }
 }
 
@@ -302,8 +304,7 @@ export class Bezier3 extends Bezier {
         // 判断bbox包含p
         if (!rect_contains_point(this.bbox(), p)) return [];
 
-        // f(t) = P0*(1-t)^3 + 3*P1*(1-t)^2*t + 3*P2*(1-t)*t^2 + P3*t^3 = p, 求t
-        // 求a*t^3 + b*t^2 + c*t + d = 0的根
+        // f(t) = P0*(1-t)^3 + 3*P1*(1-t)^2*t + 3*P2*(1-t)*t^2 + P3*t^3 - p = 0, 求t
 
         //  Bairstow’s method & Newton's method
         // https://en.wikipedia.org/wiki/Bairstow%27s_method
@@ -318,7 +319,7 @@ export class Bezier3 extends Bezier {
 
         // 使用牛顿方法求解，方便快速排除无0-1的解的情况
         // Newton's method: t(n+1) = t(n) - f(tn) / f'(tn)
-        // 计算出t(n)如果不在0-1时，判断[-B(tn) / B'(tn)]的方向，如果继续远离，则直接结束(都不用判断)
+        // 计算出t(n)如果不在0-1时，判断[-B(tn) / B'(tn)]的方向，如果继续远离，则直接结束(都不用判断,不行,迭代过程中t有可能超出0-1区间)
         // 可能自相交的t=0及t=1开始，不自相交的从t=0.5开始
 
         const p0 = this.points[0];
@@ -347,19 +348,25 @@ export class Bezier3 extends Bezier {
         const newton = (t: number, a3: number, a2: number, a1: number, a0: number) => {
             let pt = Number.MAX_SAFE_INTEGER;
             let maxloop = 100; // 防止无限循环？
-            while (Math.abs(pt - t) > float_accuracy && t >= 0 && t <= 1 && (--maxloop > 0)) {
+            while (Math.abs(pt - t) > float_accuracy && (--maxloop > 0)) {
                 pt = t;
                 const d = df(t, a3, a2, a1);
                 if (d === 0) {
-                    t = Number.MAX_SAFE_INTEGER
-                } else {
-                    t -= f(t, a3, a2, a1, a0) / d;
+                    return Number.MAX_SAFE_INTEGER
                 }
+                const s = -f(t, a3, a2, a1, a0) / d;
+                if (t >= 1 && s > 0 || t <= 0 && s < 0) return Number.MAX_SAFE_INTEGER
+                t += s;
             }
             if (maxloop === 0) {
-                console.error("maxloop")
+                console.error("newton loop")
                 return Number.MAX_SAFE_INTEGER
             }
+            // console.log('newton loop', 100 - maxloop)
+            // 修正下t
+            if (Math.abs(t) < float_accuracy) t = 0;
+            else if (Math.abs(t - 1) < float_accuracy) t = 1;
+
             return t;
         }
 
@@ -392,7 +399,7 @@ export class Bezier3 extends Bezier {
         if (rety.length === 0) return rety;
 
         const accept = (t: number, i: number) => {
-            return t >= 0 && t <= 1 && rety.indexOf(t) === i && retx.find((v) => Math.abs(v - t) < float_accuracy);// 考虑误差
+            return t >= 0 && t <= 1 && rety.indexOf(t) === i && retx.find((v) => Math.abs(v - t) < float_accuracy) !== undefined;// 考虑误差
         }
         return rety.filter(accept).sort((a, b) => a - b)
 
