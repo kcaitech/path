@@ -1,3 +1,5 @@
+export const float_accuracy = 1e-7;
+
 export type Point = {
     x: number;
     y: number;
@@ -43,5 +45,6 @@ export type Segment = {
     get type(): 'L' | 'Q' | 'C'
     color?: number;
 
-    intersect(seg: Segment): {t0: number, t1: number}[];
+    intersect(seg: Segment): ({type: "overlap", t0: number, t1: number, t3: number, t4: number} | {type: "intersect", t0: number, t1: number})[];
+    locate(p: Point): number[];
 }
