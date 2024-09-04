@@ -324,11 +324,8 @@ export class Bezier3 extends Bezier {
             }).sort((a, b) => a - b)
         }
 
-        // 二次方程求解
-        if ((a3('x')) === 0) {
-            const retx = resolve_quard('x');
-            return resolve_ret(retx, 'y');
-        } else if ((a3('y')) === 0) {
+        // y二次方程求解
+        if ((a3('y')) === 0) {
             const rety = resolve_quard('y');
             return resolve_ret(rety, 'x');
         }
