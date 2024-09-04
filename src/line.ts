@@ -1,4 +1,4 @@
-import { float_accuracy, Point, Rect, Segment } from "./basic";
+import { float_accuracy, intersect_rect, Point, Rect, Segment } from "./basic";
 
 export class Line implements Segment {
     p1: Point
@@ -66,32 +66,53 @@ export class Line implements Segment {
         if (seg.type !== 'L') return seg.intersect(this);
 
         const rhs = seg as Line;
+        if (!intersect_rect(this.bbox(), rhs.bbox())) return [];
+
+        const p1 = this.p1;
+        const p2 = this.p2;
+        const p3 = rhs.p1;
+        const p4 = rhs.p2;
+        const x1 = p1.x, y1 = p1.y,
+            x2 = p2.x, y2 = p2.y,
+            x3 = p3.x, y3 = p3.y,
+            x4 = p4.x, y4 = p4.y;
         // line intersect
-        const lli8 = function (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number) {
-            const nx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4),
-                ny = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4),
-                d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4); // 法向量
-            if (d === 0) {
-                // 平行
-                // 判断是否重合
-                return false
+        const d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4); // 法向量
+        if (d === 0) {
+            // 平行
+            // 判断是否重合
+            const l0 = this.locate(rhs.p1);
+            const l1 = this.locate(rhs.p2);
+            if (l0.length > 0 || l1.length > 0) {
+                // todo
             }
-            return { x: nx / d, y: ny / d }
+            return []
+        }
+        const nx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4),
+            ny = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4);
+        const p = { x: nx / d, y: ny / d }
+        let t0: number
+        if (Math.abs(x1 - x2) < float_accuracy) {
+            t0 = (p.y - y1) / (y2 - y1)
+        } else {
+            t0 = (p.x - x1) / (x2 - x1)
+        }
+        let t1: number
+        if (Math.abs(x4 - x3) < float_accuracy) {
+            t1 = (p.y - y3) / (y4 - y3)
+        } else {
+            t1 = (p.x - x3) / (x4 - x3)
         }
 
-        const lli4 = function (p1: Point, p2: Point, p3: Point, p4: Point) {
-            const x1 = p1.x, y1 = p1.y,
-                x2 = p2.x, y2 = p2.y,
-                x3 = p3.x, y3 = p3.y,
-                x4 = p4.x, y4 = p4.y;
-            return lli8(x1, y1, x2, y2, x3, y3, x4, y4)
+        const fix = (t: number) => {
+            if (Math.abs(t) < float_accuracy) t = 0;
+            else if (Math.abs(t - 1) < float_accuracy) t = 1;
+            return t;
         }
+        t0 = fix(t0)
+        t1 = fix(t1)
+        if (t0 >= 0 && t0 <= 1 && t1 >= 0 && t1 <= 1) return [{ type: "intersect", t0, t1 }]
 
-        const lli = function (line1: Line, line2: Line) {
-            return lli4(line1.p1, line1.p2, line2.p1, line2.p2)
-        }
-        // return lli(this, rhs)
-
-        throw new Error("Method not implemented.");
+        return []
     }
 }

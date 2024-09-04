@@ -195,15 +195,15 @@ export class Bezier2 extends Bezier {
             return [new Bezier2(p0, p1, p2)]
         }
 
-        function interpolate(p1: Point, p2: Point, t: number) {
+        function pa(p1: Point, p2: Point, t: number) {
             return {
                 x: p1.x + (p2.x - p1.x) * t,
                 y: p1.y + (p2.y - p1.y) * t
             }
         }
-        const p01 = interpolate(p0, p1, t);
-        const p12 = interpolate(p1, p2, t);
-        const p012 = interpolate(p01, p12, t);
+        const p01 = pa(p0, p1, t);
+        const p12 = pa(p1, p2, t);
+        const p012 = pa(p01, p12, t);
         return [
             new Bezier2(p0, p01, p012),
             new Bezier2(p012, p12, p2)
@@ -343,18 +343,18 @@ export class Bezier3 extends Bezier {
             return [new Bezier3(p0, p1, p2, p3)]
         }
 
-        function interpolate(p1: Point, p2: Point, t: number) {
+        function pa(p1: Point, p2: Point, t: number) {
             return {
                 x: p1.x + (p2.x - p1.x) * t,
                 y: p1.y + (p2.y - p1.y) * t
             }
         }
-        const p01 = interpolate(p0, p1, t);
-        const p12 = interpolate(p1, p2, t);
-        const p23 = interpolate(p2, p3, t);
-        const p012 = interpolate(p01, p12, t);
-        const p123 = interpolate(p12, p23, t);
-        const p0123 = interpolate(p012, p123, t);
+        const p01 = pa(p0, p1, t);
+        const p12 = pa(p1, p2, t);
+        const p23 = pa(p2, p3, t);
+        const p012 = pa(p01, p12, t);
+        const p123 = pa(p12, p23, t);
+        const p0123 = pa(p012, p123, t);
         return [
             new Bezier3(p0, p01, p012, p0123),
             new Bezier3(p0123, p123, p23, p3)
