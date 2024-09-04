@@ -1,70 +1,7 @@
 import { Line } from "./line";
-import { float_accuracy, Point, Rect, rect_contains_point, Segment } from "./basic"
+import { float_accuracy, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation } from "./basic"
 
 const ZERO = { x: 0, y: 0 };
-
-function solveQuadraticEquation(ax: number, bx: number, cx: number) {
-    const dx = bx * bx - 4 * ax * cx;
-    const retx: number[] = [];
-    if (ax === 0) {
-        if (bx !== 0) retx.push(cx / bx);
-    }
-    else if (dx === 0) {
-        retx.push(-bx / (2 * ax))
-    }
-    else if (dx > 0) {
-        const sqrt = Math.sqrt(dx);
-        retx.push((-bx + sqrt) / (2 * ax), (-bx - sqrt) / (2 * ax))
-    }
-    return retx.sort((a, b) => a - b);
-}
-
-// Cardano's mathematical formula
-// https://github.com/vtzast/Cubic_Equation_Solver/blob/main/Cubic%20Equation%20Solver.py
-export function solveCubicEquation(a: number, b: number, c: number, d: number): number[] {
-    if (a === 0) {
-        return solveQuadraticEquation(b, c, d)
-    }
-    if (d === 0) {
-        return [0, ...solveQuadraticEquation(a, b, c)].filter((v, i, arr) => {
-            return arr.indexOf(v) === i
-        }).sort((a, b) => a - b);
-    }
-    let roots: number[]
-    const cube_root = (x: number) => 0 <= x ? x ** (1 / 3) : (- ((-x) ** (1 / 3)))
-    const delta = 18 * a * b * c * d - 4 * (b ** 3) * d + (b ** 2) * (c ** 2) - 4 * a * (c ** 3) - 27 * (a ** 2) * (d ** 2)
-    const P = b ** 2 - 3 * a * c
-    const Q = 9 * a * b * c - 2 * (b ** 3) - 27 * (a ** 2) * d
-    if (delta > 0) {
-        const D1 = (2 * (b / a) ** 3 - 9 * ((b / a) * (c / a)) + 27 * (d / a)) / 54
-        const D2 = ((b / a) ** 2 - 3 * (c / a)) / 9
-        const D2_sqrt = Math.sqrt(D2);
-        const theta = Math.acos(D1 / Math.sqrt(D2 ** 3))
-        const x1 = -2 * D2_sqrt * Math.cos(theta / 3) - b / 3
-        const x2 = -2 * D2_sqrt * Math.cos((theta + 2 * Math.PI) / 3) - b / 3
-        const x3 = -2 * D2_sqrt * Math.cos((theta - 2 * Math.PI) / 3) - b / 3
-        roots = [x1, x2, x3]
-    } else if (delta < 0) {
-        const t = Math.sqrt((Q ** 2) / 4 - P ** 3);
-        const N = cube_root(Q / 2 + t) + cube_root(Q / 2 - t)
-        const x = -b / (3 * a) + N / (3 * a)
-        // 复数解
-        // const z1 = complex(round((-B / (3 * A) - (N / 2) / (3 * A)), 2),
-        //     round(sqrt((3 / 4) * N ** 2 - 3 * P) / (3 * A), 2))
-        // const z2 = z1.conjugate()
-        roots = [x]
-    } else if (P == 0) {
-        const x = -b / (3 * a)
-        roots = [x]
-    } else {
-        const xd = (9 * a * d - b * c) / (2 * P)
-        const xs = (4 * a * b * c - 9 * a ** 2 * d - b ** 3) / (a * P)
-        roots = [xd, xs]
-    }
-    return roots.filter((v, i, arr) => {
-        return arr.indexOf(v) === i
-    }).sort((a, b) => a - b);
-}
 
 abstract class Bezier implements Segment {
     points: Point[]
@@ -152,7 +89,7 @@ abstract class Bezier implements Segment {
 
     abstract locate(p: Point): number[]  // 点在线上的位置
 
-
+    abstract split(t: number): Bezier[];
 
     intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t3: number, t4: number } | { type: "intersect", t0: number, t1: number })[] { // 相交、不相交、重合
         switch (seg.type) {
@@ -163,9 +100,6 @@ abstract class Bezier implements Segment {
         throw new Error("Method not implemented.");
     }
 
-    split(t: number): Bezier[] {
-        throw new Error("Method not implemented.");
-    }
 }
 
 export class Bezier2 extends Bezier {
@@ -251,6 +185,29 @@ export class Bezier2 extends Bezier {
         }
 
         return rety.map(fix).filter(accept).sort((a, b) => a - b)
+    }
+
+    split(t: number): Bezier2[] {
+        const p0 = this.points[0];
+        const p1 = this.points[1];
+        const p2 = this.points[2];
+        if (t === 0 || t === 1) {
+            return [new Bezier2(p0, p1, p2)]
+        }
+
+        function interpolate(p1: Point, p2: Point, t: number) {
+            return {
+                x: p1.x + (p2.x - p1.x) * t,
+                y: p1.y + (p2.y - p1.y) * t
+            }
+        }
+        const p01 = interpolate(p0, p1, t);
+        const p12 = interpolate(p1, p2, t);
+        const p012 = interpolate(p01, p12, t);
+        return [
+            new Bezier2(p0, p01, p012),
+            new Bezier2(p012, p12, p2)
+        ];
     }
 }
 
@@ -378,5 +335,32 @@ export class Bezier3 extends Bezier {
 
         const retx = solveCubicEquation(a3('x'), a2('x'), a1('x'), a0('x')).map(fix).filter((t) => t >= 0 && t <= 1);
         return resolve_ret(retx, 'y');
+    }
+
+    split(t: number): Bezier3[] {
+        const p0 = this.points[0];
+        const p1 = this.points[1];
+        const p2 = this.points[2];
+        const p3 = this.points[3];
+        if (t === 0 || t === 1) {
+            return [new Bezier3(p0, p1, p2, p3)]
+        }
+
+        function interpolate(p1: Point, p2: Point, t: number) {
+            return {
+                x: p1.x + (p2.x - p1.x) * t,
+                y: p1.y + (p2.y - p1.y) * t
+            }
+        }
+        const p01 = interpolate(p0, p1, t);
+        const p12 = interpolate(p1, p2, t);
+        const p23 = interpolate(p2, p3, t);
+        const p012 = interpolate(p01, p12, t);
+        const p123 = interpolate(p12, p23, t);
+        const p0123 = interpolate(p012, p123, t);
+        return [
+            new Bezier3(p0, p01, p012, p0123),
+            new Bezier3(p0123, p123, p23, p3)
+        ];
     }
 }

@@ -57,3 +57,67 @@ export type Segment = {
     locate(p: Point): number[];
     split(t: number): Segment[];
 }
+
+
+export function solveQuadraticEquation(ax: number, bx: number, cx: number) {
+    const dx = bx * bx - 4 * ax * cx;
+    const retx: number[] = [];
+    if (ax === 0) {
+        if (bx !== 0) retx.push(cx / bx);
+    }
+    else if (dx === 0) {
+        retx.push(-bx / (2 * ax))
+    }
+    else if (dx > 0) {
+        const sqrt = Math.sqrt(dx);
+        retx.push((-bx + sqrt) / (2 * ax), (-bx - sqrt) / (2 * ax))
+    }
+    return retx.sort((a, b) => a - b);
+}
+
+// Cardano's mathematical formula
+// https://github.com/vtzast/Cubic_Equation_Solver/blob/main/Cubic%20Equation%20Solver.py
+export function solveCubicEquation(a: number, b: number, c: number, d: number): number[] {
+    if (a === 0) {
+        return solveQuadraticEquation(b, c, d)
+    }
+    if (d === 0) {
+        return [0, ...solveQuadraticEquation(a, b, c)].filter((v, i, arr) => {
+            return arr.indexOf(v) === i
+        }).sort((a, b) => a - b);
+    }
+    let roots: number[]
+    const cube_root = (x: number) => 0 <= x ? x ** (1 / 3) : (- ((-x) ** (1 / 3)))
+    const delta = 18 * a * b * c * d - 4 * (b ** 3) * d + (b ** 2) * (c ** 2) - 4 * a * (c ** 3) - 27 * (a ** 2) * (d ** 2)
+    const P = b ** 2 - 3 * a * c
+    const Q = 9 * a * b * c - 2 * (b ** 3) - 27 * (a ** 2) * d
+    if (delta > 0) {
+        const D1 = (2 * (b / a) ** 3 - 9 * ((b / a) * (c / a)) + 27 * (d / a)) / 54
+        const D2 = ((b / a) ** 2 - 3 * (c / a)) / 9
+        const D2_sqrt = Math.sqrt(D2);
+        const theta = Math.acos(D1 / Math.sqrt(D2 ** 3))
+        const x1 = -2 * D2_sqrt * Math.cos(theta / 3) - b / 3
+        const x2 = -2 * D2_sqrt * Math.cos((theta + 2 * Math.PI) / 3) - b / 3
+        const x3 = -2 * D2_sqrt * Math.cos((theta - 2 * Math.PI) / 3) - b / 3
+        roots = [x1, x2, x3]
+    } else if (delta < 0) {
+        const t = Math.sqrt((Q ** 2) / 4 - P ** 3);
+        const N = cube_root(Q / 2 + t) + cube_root(Q / 2 - t)
+        const x = -b / (3 * a) + N / (3 * a)
+        // 复数解
+        // const z1 = complex(round((-B / (3 * A) - (N / 2) / (3 * A)), 2),
+        //     round(sqrt((3 / 4) * N ** 2 - 3 * P) / (3 * A), 2))
+        // const z2 = z1.conjugate()
+        roots = [x]
+    } else if (P == 0) {
+        const x = -b / (3 * a)
+        roots = [x]
+    } else {
+        const xd = (9 * a * d - b * c) / (2 * P)
+        const xs = (4 * a * b * c - 9 * a ** 2 * d - b ** 3) / (a * P)
+        roots = [xd, xs]
+    }
+    return roots.filter((v, i, arr) => {
+        return arr.indexOf(v) === i
+    }).sort((a, b) => a - b);
+}

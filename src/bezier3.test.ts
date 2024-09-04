@@ -1,5 +1,5 @@
-import { float_accuracy } from "./basic";
-import { Bezier3, solveCubicEquation } from "./bezier3";
+import { float_accuracy, solveCubicEquation } from "./basic";
+import { Bezier3 } from "./bezier3";
 
 describe(`bezier3`, () => {
     test('extream', () => {
