@@ -31,20 +31,22 @@ export function solveCubicEquation(a: number, b: number, c: number, d: number): 
         }).sort((a, b) => a - b);
     }
     let roots: number[]
-    const cube_root = (x: number) => 0 <= x ? x ** (1. / 3.) : (- ((-x) ** (1. / 3.)))
+    const cube_root = (x: number) => 0 <= x ? x ** (1 / 3) : (- ((-x) ** (1 / 3)))
     const delta = 18 * a * b * c * d - 4 * (b ** 3) * d + (b ** 2) * (c ** 2) - 4 * a * (c ** 3) - 27 * (a ** 2) * (d ** 2)
     const P = b ** 2 - 3 * a * c
     const Q = 9 * a * b * c - 2 * (b ** 3) - 27 * (a ** 2) * d
     if (delta > 0) {
         const D1 = (2 * (b / a) ** 3 - 9 * ((b / a) * (c / a)) + 27 * (d / a)) / 54
         const D2 = ((b / a) ** 2 - 3 * (c / a)) / 9
+        const D2_sqrt = Math.sqrt(D2);
         const theta = Math.acos(D1 / Math.sqrt(D2 ** 3))
-        const x1 = -2 * Math.sqrt(D2) * Math.cos(theta / 3) - b / 3
-        const x2 = -2 * Math.sqrt(D2) * Math.cos((theta + 2 * Math.PI) / 3) - b / 3
-        const x3 = -2 * Math.sqrt(D2) * Math.cos((theta - 2 * Math.PI) / 3) - b / 3
+        const x1 = -2 * D2_sqrt * Math.cos(theta / 3) - b / 3
+        const x2 = -2 * D2_sqrt * Math.cos((theta + 2 * Math.PI) / 3) - b / 3
+        const x3 = -2 * D2_sqrt * Math.cos((theta - 2 * Math.PI) / 3) - b / 3
         roots = [x1, x2, x3]
     } else if (delta < 0) {
-        const N = cube_root(Q / 2 + Math.sqrt((Q ** 2) / 4 - P ** 3)) + cube_root(Q / 2 - Math.sqrt((Q ** 2) / 4 - P ** 3))
+        const t = Math.sqrt((Q ** 2) / 4 - P ** 3);
+        const N = cube_root(Q / 2 + t) + cube_root(Q / 2 - t)
         const x = -b / (3 * a) + N / (3 * a)
         // 复数解
         // const z1 = complex(round((-B / (3 * A) - (N / 2) / (3 * A)), 2),
