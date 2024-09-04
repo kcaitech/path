@@ -3,6 +3,67 @@ import { float_accuracy, Point, Rect, rect_contains_point, Segment } from "./bas
 
 const ZERO = { x: 0, y: 0 };
 
+function solveQuadraticEquation(ax: number, bx: number, cx: number) {
+    const dx = bx * bx - 4 * ax * cx;
+    const retx: number[] = [];
+    if (ax === 0) {
+        if (bx !== 0) retx.push(cx / bx);
+    }
+    else if (dx === 0) {
+        retx.push(-bx / (2 * ax))
+    }
+    else if (dx > 0) {
+        const sqrt = Math.sqrt(dx);
+        retx.push((-bx + sqrt) / (2 * ax), (-bx - sqrt) / (2 * ax))
+    }
+    return retx.sort((a, b) => a - b);
+}
+
+// Cardano's mathematical formula
+// https://github.com/vtzast/Cubic_Equation_Solver/blob/main/Cubic%20Equation%20Solver.py
+export function solveCubicEquation(a: number, b: number, c: number, d: number): number[] {
+    if (a === 0) {
+        return solveQuadraticEquation(b, c, d)
+    }
+    if (d === 0) {
+        return [0, ...solveQuadraticEquation(a, b, c)].filter((v, i, arr) => {
+            return arr.indexOf(v) === i
+        }).sort((a, b) => a - b);
+    }
+    let roots: number[]
+    const cube_root = (x: number) => 0 <= x ? x ** (1. / 3.) : (- ((-x) ** (1. / 3.)))
+    const delta = 18 * a * b * c * d - 4 * (b ** 3) * d + (b ** 2) * (c ** 2) - 4 * a * (c ** 3) - 27 * (a ** 2) * (d ** 2)
+    const P = b ** 2 - 3 * a * c
+    const Q = 9 * a * b * c - 2 * (b ** 3) - 27 * (a ** 2) * d
+    if (delta > 0) {
+        const D1 = (2 * (b / a) ** 3 - 9 * ((b / a) * (c / a)) + 27 * (d / a)) / 54
+        const D2 = ((b / a) ** 2 - 3 * (c / a)) / 9
+        const theta = Math.acos(D1 / Math.sqrt(D2 ** 3))
+        const x1 = -2 * Math.sqrt(D2) * Math.cos(theta / 3) - b / 3
+        const x2 = -2 * Math.sqrt(D2) * Math.cos((theta + 2 * Math.PI) / 3) - b / 3
+        const x3 = -2 * Math.sqrt(D2) * Math.cos((theta - 2 * Math.PI) / 3) - b / 3
+        roots = [x1, x2, x3]
+    } else if (delta < 0) {
+        const N = cube_root(Q / 2 + Math.sqrt((Q ** 2) / 4 - P ** 3)) + cube_root(Q / 2 - Math.sqrt((Q ** 2) / 4 - P ** 3))
+        const x = -b / (3 * a) + N / (3 * a)
+        // 复数解
+        // const z1 = complex(round((-B / (3 * A) - (N / 2) / (3 * A)), 2),
+        //     round(sqrt((3 / 4) * N ** 2 - 3 * P) / (3 * A), 2))
+        // const z2 = z1.conjugate()
+        roots = [x]
+    } else if (P == 0) {
+        const x = -b / (3 * a)
+        roots = [x]
+    } else {
+        const xd = (9 * a * d - b * c) / (2 * P)
+        const xs = (4 * a * b * c - 9 * a ** 2 * d - b ** 3) / (a * P)
+        roots = [xd, xs]
+    }
+    return roots.filter((v, i, arr) => {
+        return arr.indexOf(v) === i
+    }).sort((a, b) => a - b);
+}
+
 abstract class Bezier implements Segment {
     points: Point[]
 
@@ -173,22 +234,7 @@ export class Bezier2 extends Bezier {
             const ax = a(dim);
             const bx = b(dim);
             const cx = c(dim);
-
-            const dx = bx * bx - 4 * ax * cx;
-
-            const retx: number[] = [];
-
-            if (ax === 0) {
-                if (bx !== 0) retx.push(cx / bx);
-            }
-            else if (dx === 0) {
-                retx.push(-bx / (2 * ax))
-            }
-            else if (dx > 0) {
-                const sqrt = Math.sqrt(dx);
-                retx.push((-bx + sqrt) / (2 * ax), (-bx - sqrt) / (2 * ax))
-            }
-
+            const retx = solveQuadraticEquation(ax, bx, cx);
             return retx.map(fix).filter((t) => t >= 0 && t <= 1);
         }
 
@@ -251,32 +297,7 @@ export class Bezier3 extends Bezier {
         const by = b('y');
         const cy = c('y');
 
-        const dx = bx * bx - 4 * ax * cx;
-        const dy = by * by - 4 * ay * cy;
-
-        const ret: number[] = [];
-
-        if (ax === 0) {
-            if (bx !== 0) ret.push(cx / bx);
-        }
-        else if (dx === 0) {
-            ret.push(-bx / (2 * ax))
-        }
-        else if (dx > 0) {
-            const sqrt = Math.sqrt(dx);
-            ret.push((-bx + sqrt) / (2 * ax), (-bx - sqrt) / (2 * ax))
-        }
-
-        if (ay === 0) {
-            if (by !== 0) ret.push(cy / by);
-        }
-        else if (dy === 0) {
-            ret.push(-by / (2 * ay))
-        }
-        else if (dy > 0) {
-            const sqrt = Math.sqrt(dy);
-            ret.push((-by + sqrt) / (2 * ay), (-by - sqrt) / (2 * ay))
-        }
+        const ret = [...solveQuadraticEquation(ax, bx, cx), ...solveQuadraticEquation(ay, by, cy)];
 
         const accept = (t: number, i: number) => {
             return t >= 0 && t <= 1 && ret.indexOf(t) === i;
@@ -305,23 +326,6 @@ export class Bezier3 extends Bezier {
 
         // f(t) = P0*(1-t)^3 + 3*P1*(1-t)^2*t + 3*P2*(1-t)*t^2 + P3*t^3 - p = 0, 求t
 
-        //  Bairstow’s method & Newton's method
-        // https://en.wikipedia.org/wiki/Bairstow%27s_method
-        // https://en.wikipedia.org/wiki/Newton%27s_method
-        // a3 = -P0+3*P1-3*P2+P3
-        // a2 = 3*P0 - 6*P1 + 3*P2
-        // a1 = -3*P0 + 3*P1
-        // a0 = P0 - p
-        // f(t) = a3*t^3 + a2*t^2 + a1*t + a0
-        // f'(t) = 3*a3*t^2 + 2*a2*t + a1
-        // 令t=0及t=1开始用Newton's method计算？// 如果是自相交的bezier曲线，可能有两个解
-
-        // todo
-        // 使用牛顿方法求解，方便快速排除无0-1的解的情况
-        // Newton's method: t(n+1) = t(n) - f(tn) / f'(tn)
-        // 计算出t(n)如果不在0-1时，判断[-B(tn) / B'(tn)]的方向，如果继续远离，则直接结束(都不用判断,不行,迭代过程中t有可能超出0-1区间)
-        // 可能自相交的t=0及t=1开始，不自相交的从t=0.5开始
-
         const p0 = this.points[0];
         const p1 = this.points[1];
         const p2 = this.points[2];
@@ -338,101 +342,39 @@ export class Bezier3 extends Bezier {
         const a0 = (dim: 'x' | 'y') => {
             return p0[dim] - p[dim]
         }
-        const df = (t: number, a3: number, a2: number, a1: number) => {
-            return 3 * a3 * t ** 2 + 2 * a2 * t + a1
-        }
-        const f = (t: number, a3: number, a2: number, a1: number, a0: number) => {
-            return a3 * t ** 3 + a2 * t ** 2 + a1 * t + a0
-        }
 
-        const newton = (t: number, a3: number, a2: number, a1: number, a0: number) => {
-            let pt = Number.MAX_SAFE_INTEGER;
-            let maxloop = 100; // 防止无限循环？
-            while (Math.abs(pt - t) > float_accuracy && (--maxloop > 0)) {
-                pt = t;
-                const d = df(t, a3, a2, a1);
-                if (d === 0) {
-                    return Number.MAX_SAFE_INTEGER
-                }
-                const s = -f(t, a3, a2, a1, a0) / d;
-                if (t >= 1 && s > 0 || t <= 0 && s < 0) return Number.MAX_SAFE_INTEGER
-                t += s;
-            }
-            if (maxloop === 0) {
-                console.error("newton loop")
-                return Number.MAX_SAFE_INTEGER
-            }
-            // console.log('newton loop', 100 - maxloop)
-            // 修正下t
+        const fix = (t: number) => {
             if (Math.abs(t) < float_accuracy) t = 0;
             else if (Math.abs(t - 1) < float_accuracy) t = 1;
-
             return t;
         }
 
-        const nonIntersect = this.isNonIntersect();
-
-        const resolve = (dim: 'x' | 'y') => {
-            const a3x = a3(dim);
-            const a2x = a2(dim);
-            const a1x = a1(dim);
-            const a0x = a0(dim);
-            const retx: number[] = [];
-            if (nonIntersect) {
-                const t = newton(0.5, a3x, a2x, a1x, a0x);
-                if (t >= 0 && t <= 1) retx.push(t);
-            } else {
-                const t = newton(0, a3x, a2x, a1x, a0x);
-                if (t >= 0 && t <= 1) retx.push(t);
-                const t1 = newton(1, a3x, a2x, a1x, a0x);
-                if (t1 >= 0 && t1 <= 1) retx.push(t1);
-            }
-            return retx;
+        const resolve_quard = (dim: 'x' | 'y') => {
+            const ax = a2(dim);
+            const bx = a1(dim);
+            const cx = a0(dim);
+            const retx = solveQuadraticEquation(ax, bx, cx);
+            return retx.map(fix).filter((t) => t >= 0 && t <= 1);
         }
 
-        // 先计算x
-        const retx = resolve('x');
-        if (retx.length === 0) return retx;
+        const resolve_ret = (retx: number[], dim: 'x' | 'y') => {
+            return retx.filter((t, i) => {
+                if (retx.indexOf(t) !== i) return false;
+                const _p = this.pointAt(t);
+                return Math.abs(_p[dim] - p[dim]) < float_accuracy;
+            }).sort((a, b) => a - b)
+        }
 
-        // 直接计算点y比解方程快
-        return retx.filter((t, i) => {
-            if (retx.indexOf(t) !== i) return false;
-            const _p = this.pointAt(t);
-            return Math.abs(_p.y - p.y) < float_accuracy;
-        }).sort((a, b) => a - b)
+        // 二次方程求解
+        if ((a3('x')) === 0) {
+            const retx = resolve_quard('x');
+            return resolve_ret(retx, 'y');
+        } else if ((a3('y')) === 0) {
+            const rety = resolve_quard('y');
+            return resolve_ret(rety, 'x');
+        }
 
-        // 计算y
-        // const rety = resolve('y');
-        // if (rety.length === 0) return rety;
-        // const accept = (t: number, i: number) => {
-        //     return t >= 0 && t <= 1 && rety.indexOf(t) === i && retx.find((v) => Math.abs(v - t) < float_accuracy) !== undefined;// 考虑误差
-        // }
-        // return rety.filter(accept).sort((a, b) => a - b)
-
-        // Bairstow’s method
-        // f(t) = (t^2 + u*t + v) *(b1*t + b0) + (ct + d) = 0,误差(ct + d)代表？
-        // b1= a3
-        // b0 = a2 - u*a3
-        // c = a1 -u*b0 -v*b1= a1 - u*a2 + u^2*a3 -v*a3
-        // d = a0-v*b0 = a0 - v*a2 + v*u*a3
-        // 求c=d=0时uv的值
-        // Newton's method: x(n+1) = x(n) - f(xn) / f'(xn)
-        // c'u = -a2 + 2*a3*u
-        // c'v = -a3
-        // d'u = v*a3
-        // d'v = u*a3 - a2
-        // Jacobi矩阵: A
-        //          c'u c'v
-        //          d'u d'v
-        // |A| = c'u * d'v - c'v * d'u
-        // 如果|A|!==0, A可逆
-        // A^-1 = 1/|A| * |d'v  -c'v|
-        //                |-d'u  c'u|
-        // |u|=|u|-A^-1 * |c|
-        // |v| |v|        |d|
-        // 如果|A|===0,无解？
-
-
-        // throw new Error("Method not implemented.");
+        const retx = solveCubicEquation(a3('x'), a2('x'), a1('x'), a0('x')).map(fix).filter((t) => t >= 0 && t <= 1);
+        return resolve_ret(retx, 'y');
     }
 }
