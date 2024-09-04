@@ -147,7 +147,7 @@ export class Bezier2 extends Bezier {
 
         // f(t) = P0*(1-t)^2 + 2*P1*(1-t)*t + P2*t^2 - p = 0, 求t
         // a=P0 -2*P1 + P2
-        // b=-2*(P0+P1)
+        // b=-2*(P0-P1)
         // c=P0-p
         // f(t) = a*t^2 + b*t + c
         const p0 = this.points[0];
@@ -157,7 +157,7 @@ export class Bezier2 extends Bezier {
             return p0[dim] - 2 * p1[dim] + p2[dim]
         }
         const b = (dim: 'x' | 'y') => {
-            return -2 * (p0[dim] + p1[dim])
+            return -2 * (p0[dim] - p1[dim])
         }
         const c = (dim: 'x' | 'y') => {
             return p0[dim] - p[dim]
@@ -198,7 +198,6 @@ export class Bezier2 extends Bezier {
         const rety = resolve('y');
         if (rety.length === 0) return rety;
 
-        console.log(retx, rety)
         const accept = (t: number, i: number) => {
             return rety.indexOf(t) === i && retx.find((v) => Math.abs(v - t) < float_accuracy) !== undefined;// 考虑误差
         }
@@ -317,6 +316,7 @@ export class Bezier3 extends Bezier {
         // f'(t) = 3*a3*t^2 + 2*a2*t + a1
         // 令t=0及t=1开始用Newton's method计算？// 如果是自相交的bezier曲线，可能有两个解
 
+        // todo
         // 使用牛顿方法求解，方便快速排除无0-1的解的情况
         // Newton's method: t(n+1) = t(n) - f(tn) / f'(tn)
         // 计算出t(n)如果不在0-1时，判断[-B(tn) / B'(tn)]的方向，如果继续远离，则直接结束(都不用判断,不行,迭代过程中t有可能超出0-1区间)
@@ -394,15 +394,22 @@ export class Bezier3 extends Bezier {
         const retx = resolve('x');
         if (retx.length === 0) return retx;
 
+        // 直接计算点y比解方程快
+        return retx.filter((t, i) => {
+            if (retx.indexOf(t) !== i) return false;
+            const _p = this.pointAt(t);
+            return Math.abs(_p.y - p.y) < float_accuracy;
+        }).sort((a, b) => a - b)
+
         // 计算y
-        const rety = resolve('y');
-        if (rety.length === 0) return rety;
+        // const rety = resolve('y');
+        // if (rety.length === 0) return rety;
+        // const accept = (t: number, i: number) => {
+        //     return t >= 0 && t <= 1 && rety.indexOf(t) === i && retx.find((v) => Math.abs(v - t) < float_accuracy) !== undefined;// 考虑误差
+        // }
+        // return rety.filter(accept).sort((a, b) => a - b)
 
-        const accept = (t: number, i: number) => {
-            return t >= 0 && t <= 1 && rety.indexOf(t) === i && retx.find((v) => Math.abs(v - t) < float_accuracy) !== undefined;// 考虑误差
-        }
-        return rety.filter(accept).sort((a, b) => a - b)
-
+        // Bairstow’s method
         // f(t) = (t^2 + u*t + v) *(b1*t + b0) + (ct + d) = 0,误差(ct + d)代表？
         // b1= a3
         // b0 = a2 - u*a3
