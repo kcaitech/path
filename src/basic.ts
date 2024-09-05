@@ -158,7 +158,7 @@ export function alignX(points: Point[], line: Line) {
     const d = (v: Point) => {
         const x = v.x - tx;
         const y = v.y - ty;
-        return x * cos - y * sin
+        return x * sin + y * cos // y
     }
     return points.map(d);
 }
