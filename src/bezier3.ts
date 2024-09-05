@@ -91,14 +91,7 @@ abstract class Bezier implements Segment {
 
     abstract split(t: number): Bezier[];
 
-    intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t3: number, t4: number } | { type: "intersect", t0: number, t1: number })[] { // 相交、不相交、重合
-        switch (seg.type) {
-            case 'L':
-            case 'Q':
-            case 'C':
-        }
-        throw new Error("Method not implemented.");
-    }
+    abstract intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] // 相交、不相交、重合
 
 }
 
@@ -208,6 +201,27 @@ export class Bezier2 extends Bezier {
             new Bezier2(p0, p01, p012),
             new Bezier2(p012, p12, p2)
         ];
+    }
+
+    toBezier3() {
+        // If we have a curve with three points, then we can create a curve with four points that exactly reproduces the original curve. 
+        // First, we give it the same start and end points, and for its two control points we pick "1/3rd start + 2/3rd control" and "2/3rd control + 1/3rd end". 
+        // Now we have exactly the same curve as before, except represented as a cubic curve rather than a quadratic curve.
+        const p0 = this.points[0];
+        const p1 = this.points[1];
+        const p2 = this.points[2];
+        const p3 = { x: p0.x / 3 + 2 * p1.x / 3, y: p0.y / 3 + 2 * p1.y / 3 }
+        const p4 = { x: p2.x / 3 + 2 * p1.x / 3, y: p2.y / 3 + 2 * p1.y / 3 }
+        return [p0, p3, p4, p2]
+    }
+
+    intersect(seg: Segment): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+        switch (seg.type) {
+            case 'L': // 变换到以直接以L为x轴或者y轴的空间，解方程。同locate
+            case 'Q': // Q与C也是可能重合的,转换到C判定重合
+            case 'C':
+        }
+        throw new Error("Method not implemented.");
     }
 }
 
@@ -359,5 +373,14 @@ export class Bezier3 extends Bezier {
             new Bezier3(p0, p01, p012, p0123),
             new Bezier3(p0123, p123, p23, p3)
         ];
+    }
+
+    intersect(seg: Segment): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+        switch (seg.type) {
+            case 'L': // 变换到以直接以L为x轴或者y轴的空间，解方程。同locate
+            case 'Q': // Q与C也是可能重合的,转换到C判定重合
+            case 'C':
+        }
+        throw new Error("Method not implemented.");
     }
 }

@@ -62,7 +62,7 @@ export class Line implements Segment {
         return []
     }
 
-    intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t3: number, t4: number } | { type: "intersect", t0: number, t1: number })[] { // 三种情况: 相交、不相交、重合
+    intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] { // 三种情况: 相交、不相交、重合
         if (seg.type !== 'L') return seg.intersect(this);
 
         const rhs = seg as Line;
@@ -79,13 +79,20 @@ export class Line implements Segment {
         // line intersect
         const d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4); // 法向量
         if (d === 0) {
-            // 平行
+            // 平行且区间相交
             // 判断是否重合
             const l0 = this.locate(rhs.p1);
             const l1 = this.locate(rhs.p2);
-            if (l0.length > 0 || l1.length > 0) {
-                // todo
+            // 包含
+            if (l0.length > 0 && l1.length > 0) return [{ type: "overlap", t0: l0[0], t1: l1[0], t2: 0, t3: 1 }]
+            const l2 = rhs.locate(this.p1);
+            const l3 = rhs.locate(this.p2);
+            // if (l2.length > 0 && l3.length > 0) return [{ type: "overlap", t0: 0, t1: 1, t2: l2[0], t3: l3[0] }]
+            // 部分重合
+            if ((l0.length > 0 || l1.length > 0) && (l2.length > 0 || l3.length > 0)) {
+                return [{ type: "overlap", t0: l0[0] ?? 0, t1: l1[0] ?? 1, t2: l2[0] ?? 0, t3: l3[0] ?? 1 }]
             }
+            // 不重合。这个存疑
             return []
         }
         const nx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4),
