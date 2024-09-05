@@ -63,7 +63,23 @@ export class Line implements Segment {
     }
 
     intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] { // 三种情况: 相交、不相交、重合
-        if (seg.type !== 'L') return seg.intersect(this);
+        if (seg.type !== 'L') {
+            return seg.intersect(this).map(i => {
+                if (i.type === 'overlap') {
+                    const t2 = i.t2;
+                    i.t2 = i.t0;
+                    const t3 = i.t3;
+                    i.t3 = i.t1;
+                    i.t0 = t2;
+                    i.t1 = t3;
+                } else {
+                    const t0 = i.t0;
+                    i.t0 = i.t1;
+                    i.t1 = t0;
+                }
+                return i;
+            });
+        }
 
         const rhs = seg as Line;
         if (!intersect_rect(this.bbox(), rhs.bbox())) return [];

@@ -216,11 +216,35 @@ export class Bezier2 extends Bezier {
     }
 
     intersect(seg: Segment): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
-        switch (seg.type) {
-            case 'L': // 变换到以直接以L为x轴或者y轴的空间，解方程。同locate
-            case 'Q': // Q与C也是可能重合的,转换到C判定重合
-            case 'C':
+        if (seg.type === 'C') {
+            return seg.intersect(this).map(i => {
+                if (i.type === 'overlap') {
+                    const t2 = i.t2;
+                    i.t2 = i.t0;
+                    const t3 = i.t3;
+                    i.t3 = i.t1;
+                    i.t0 = t2;
+                    i.t1 = t3;
+                } else {
+                    const t0 = i.t0;
+                    i.t0 = i.t1;
+                    i.t1 = t0;
+                }
+                return i;
+            });
         }
+        if (seg.type === 'L') {
+            return this._intersectLine(seg as Line);
+        }
+        return this._intersectBezier2(seg as Bezier2);
+    }
+    _intersectLine(line: Line): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+        // 判定当前curve是否是直线
+        // 变换到以直接以L为x轴或者y轴的空间，解方程。同locate
+        throw new Error("Method not implemented.");
+    }
+    _intersectBezier2(curve: Bezier2): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+        // Q与C也是可能重合的,转换到C判定重合
         throw new Error("Method not implemented.");
     }
 }
@@ -376,11 +400,25 @@ export class Bezier3 extends Bezier {
     }
 
     intersect(seg: Segment): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
-        switch (seg.type) {
-            case 'L': // 变换到以直接以L为x轴或者y轴的空间，解方程。同locate
-            case 'Q': // Q与C也是可能重合的,转换到C判定重合
-            case 'C':
+        if (seg.type === 'L') {
+            return this._intersectLine(seg as Line);
         }
+        if (seg.type === 'Q') {
+            return this._intersectBezier2(seg as Bezier2);
+        }
+        return this._intersectBezier3(seg as Bezier3);
+    }
+    _intersectLine(line: Line): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+        // 判定当前curve是否是直线
+        // 变换到以直接以L为x轴或者y轴的空间，解方程。同locate
+        throw new Error("Method not implemented.");
+    }
+    _intersectBezier2(curve: Bezier2): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+        // Q与C也是可能重合的,转换到C判定重合
+        throw new Error("Method not implemented.");
+    }
+    _intersectBezier3(curve: Bezier3): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+        // Q与C也是可能重合的,转换到C判定重合
         throw new Error("Method not implemented.");
     }
 }
