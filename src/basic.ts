@@ -25,7 +25,7 @@ export function intersect_range(lx0: number, lx1: number, rx0: number, rx1: numb
 }
 
 export function contains_range(lx0: number, lx1: number, rx0: number, rx1: number): boolean {
-    return lx0 <= rx0 && lx1 > rx1;
+    return lx0 <= rx0 && lx1 >= rx1;
 }
 
 export function contains_point(lx0: number, lx1: number, rx0: number): boolean {
@@ -47,19 +47,24 @@ export function rect_contains_point(lhs: Rect, rhs: Point): boolean {
         contains_point(lhs.y, lhs.y + lhs.h, rhs.y);
 }
 
+export enum PathCamp { Subject, Clip }
+
 export type Segment = {
     origin?: {
         segment: Segment,
         t0: number,
         t1: number
     },
-    bbox(): Rect;
+
     get type(): 'L' | 'Q' | 'C'
     color?: number;
+    camp?: PathCamp
 
+    bbox(): Rect;
     intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[];
     locate(p: Point): number[];
     split(t: number): Segment[];
+    clip(rect: Rect): Segment[];
 }
 
 

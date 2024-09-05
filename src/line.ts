@@ -41,6 +41,10 @@ export class Line implements Segment {
         return [new Line(this.p1.x, this.p1.y, x, y), new Line(x, y, this.p2.x, this.p2.y)]
     }
 
+    clip(rect: Rect): Segment[] {
+        throw new Error()
+    }
+
     get type(): "L" {
         return "L"
     }

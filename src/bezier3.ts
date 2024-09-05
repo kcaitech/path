@@ -3,6 +3,14 @@ import { align, alignX, float_accuracy, isLine, Point, Rect, rect_contains_point
 
 const ZERO = { x: 0, y: 0 };
 
+const fix01 = function (t: number) {
+    if (Math.abs(t) < float_accuracy) t = 0;
+    else if (Math.abs(t - 1) < float_accuracy) t = 1;
+    return t;
+}
+
+const filt01 = function (t: number) { return t >= 0 && t <= 1 }
+
 abstract class Bezier implements Segment {
     points: Point[]
 
@@ -18,10 +26,19 @@ abstract class Bezier implements Segment {
 
     abstract get type(): "Q" | "C";
 
-    constructor(p0: Point, p1: Point, p2: Point)
-    constructor(p0: Point, p1: Point, p2: Point, p3: Point)
-    constructor(...points: Point[]) {
-        this.points = points
+    constructor(p0: Point, p1: Point, p2: Point, extrema?: number[])
+    constructor(p0: Point, p1: Point, p2: Point, p3: Point, extrema?: number[])
+    constructor(p0: Point, p1: Point, p2: Point, p3?: Point | number[], extrema?: number[]) {
+        if (p3 && !Array.isArray(p3)) {
+            this.points = [p0, p1, p2, p3]
+        } else {
+            this.points = [p0, p1, p2]
+        }
+        if (Array.isArray(p3)) {
+            this._extrema = p3;
+        } else if (Array.isArray(extrema)) {
+            this._extrema = extrema;
+        }
     }
 
 
@@ -31,19 +48,20 @@ abstract class Bezier implements Segment {
         return this._isLine;
     }
 
+    _extrema?: number[]
     abstract extrema(): number[];
 
     _bbox?: Rect
     bbox(): Rect {
         if (this._bbox) return this._bbox;
-        const extrema = this.extrema();
         const p0 = this.points[0];
-        const p2 = this.points[2];
+        const p2 = this.points[this.points.length - 1];
         let minx = Math.min(p0.x, p2.x);
         let miny = Math.min(p0.y, p2.y);
         let maxx = Math.max(p0.x, p2.x);
         let maxy = Math.max(p0.y, p2.y);
-        extrema.map(this.pointAt.bind(this)).forEach(p => {
+        const extrema = this.extrema();
+        if (extrema.length > 0) extrema.map(this.pointAt.bind(this)).forEach(p => {
             minx = Math.min(minx, p.x);
             maxx = Math.max(maxx, p.x);
             miny = Math.min(miny, p.y);
@@ -100,19 +118,20 @@ abstract class Bezier implements Segment {
 
     abstract intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] // 相交、不相交、重合
 
+    abstract clip(rect: Rect): Bezier2[];
 }
 
 export class Bezier2 extends Bezier {
 
-    constructor(p0: Point, p1: Point, p2: Point) {
-        super(p0, p1, p2)
+    constructor(p0: Point, p1: Point, p2: Point, extrema?: number[]) {
+        super(p0, p1, p2, extrema)
     }
 
     get type(): "Q" {
         return "Q"
     }
 
-    _extrema?: number[]
+    // _extrema?: number[]
     // Bzier2(t) = P0*(1-t)^2 + 2*P1*(1-t)*t + P2*t^2
     // Bzier2'(t) = 2*(1-t)*(P1-P0) + 2*t*(P2-P1) = 2*t*(P2-2*P1+P0)+2*(P1-P0) 直线方程.
     // t = (P1-P0)/(P2-2*P1+P0)时取得极值
@@ -163,18 +182,12 @@ export class Bezier2 extends Bezier {
             return p0[dim] - p[dim]
         }
 
-        const fix = (t: number) => {
-            if (Math.abs(t) < float_accuracy) t = 0;
-            else if (Math.abs(t - 1) < float_accuracy) t = 1;
-            return t;
-        }
-
         const resolve = (dim: 'x' | 'y') => {
             const ax = a(dim);
             const bx = b(dim);
             const cx = c(dim);
             const retx = solveQuadraticEquation(ax, bx, cx);
-            return retx.map(fix).filter((t) => t >= 0 && t <= 1);
+            return retx.map(fix01).filter(filt01);
         }
 
         const retx = resolve('x');
@@ -187,7 +200,7 @@ export class Bezier2 extends Bezier {
             return rety.indexOf(t) === i && retx.find((v) => Math.abs(v - t) < float_accuracy) !== undefined;// 考虑误差
         }
 
-        return rety.map(fix).filter(accept).sort((a, b) => a - b)
+        return rety.map(fix01).filter(accept).sort((a, b) => a - b)
     }
 
     split(t: number): Bezier2[] {
@@ -211,6 +224,17 @@ export class Bezier2 extends Bezier {
             new Bezier2(p0, p01, p012),
             new Bezier2(p012, p12, p2)
         ];
+    }
+
+    splits(t: number[]): Bezier2[] | undefined {
+        if (t.length > 0) {
+
+        }
+        throw new Error()
+    }
+
+    clip(rect: Rect): Bezier2[] {
+        throw new Error()
     }
 
     toBezier3() {
@@ -265,12 +289,7 @@ export class Bezier2 extends Bezier {
         const b = -2 * (p0 - p1)
         const c = p0
 
-        const fix = (t: number) => {
-            if (Math.abs(t) < float_accuracy) t = 0;
-            else if (Math.abs(t - 1) < float_accuracy) t = 1;
-            return t;
-        }
-        const retx = solveQuadraticEquation(a, b, c).map(fix).filter((t) => t >= 0 && t <= 1);
+        const retx = solveQuadraticEquation(a, b, c).map(fix01).filter(filt01);
         return retx.reduce((r, t) => {
             const p = this.pointAt(t);
             const l = line.locate(p);
@@ -288,8 +307,8 @@ export class Bezier2 extends Bezier {
 
 export class Bezier3 extends Bezier {
 
-    constructor(p0: Point, p1: Point, p2: Point, p3: Point) {
-        super(p0, p1, p2, p3)
+    constructor(p0: Point, p1: Point, p2: Point, p3: Point, extrema?: number[]) {
+        super(p0, p1, p2, p3, extrema)
     }
 
     // 需要转换为线段进行相交、等计算
@@ -298,7 +317,7 @@ export class Bezier3 extends Bezier {
         return "C"
     }
 
-    _extrema?: number[]
+    // _extrema?: number[]
 
     // Pascal's triangle
     //    1      n=0
@@ -383,18 +402,12 @@ export class Bezier3 extends Bezier {
             return p0[dim] - p[dim]
         }
 
-        const fix = (t: number) => {
-            if (Math.abs(t) < float_accuracy) t = 0;
-            else if (Math.abs(t - 1) < float_accuracy) t = 1;
-            return t;
-        }
-
         const resolve_quard = (dim: 'x' | 'y') => {
             const ax = a2(dim);
             const bx = a1(dim);
             const cx = a0(dim);
             const retx = solveQuadraticEquation(ax, bx, cx);
-            return retx.map(fix).filter((t) => t >= 0 && t <= 1);
+            return retx.map(fix01).filter(filt01);
         }
 
         const resolve_ret = (retx: number[], dim: 'x' | 'y') => {
@@ -411,7 +424,7 @@ export class Bezier3 extends Bezier {
             return resolve_ret(rety, 'x');
         }
 
-        const retx = solveCubicEquation(a3('x'), a2('x'), a1('x'), a0('x')).map(fix).filter((t) => t >= 0 && t <= 1);
+        const retx = solveCubicEquation(a3('x'), a2('x'), a1('x'), a0('x')).map(fix01).filter(filt01);
         return resolve_ret(retx, 'y');
     }
 
@@ -442,6 +455,10 @@ export class Bezier3 extends Bezier {
         ];
     }
 
+    clip(rect: Rect): Bezier2[] {
+        throw new Error()
+    }
+
     intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         if (seg.type === 'L') {
             return this._intersectLine(seg as Line);
@@ -468,13 +485,7 @@ export class Bezier3 extends Bezier {
         const a1 = -3 * p0 + 3 * p1
         const a0 = p0
 
-        const fix = (t: number) => {
-            if (Math.abs(t) < float_accuracy) t = 0;
-            else if (Math.abs(t - 1) < float_accuracy) t = 1;
-            return t;
-        }
-
-        const retx = solveCubicEquation(a3, a2, a1, a0).map(fix).filter((t) => t >= 0 && t <= 1);
+        const retx = solveCubicEquation(a3, a2, a1, a0).map(fix01).filter(filt01);
         // 判断这个t所在的点，在line上
 
         return retx.reduce((r, t) => {

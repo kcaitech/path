@@ -1,10 +1,6 @@
-import { Rect } from "./basic"
+import { contains_rect, Rect, Segment } from "./basic"
 
-interface _T {
-    bbox(): Rect
-}
-
-export class Grid<T extends _T> implements Rect {
+export class Grid<T extends Segment> implements Rect {
     x: number
     y: number
     w: number
@@ -18,6 +14,8 @@ export class Grid<T extends _T> implements Rect {
     data: T[] = []
     items?: Grid<T>[]
 
+    expandable: boolean
+
     constructor(x: number, y: number, w: number, h: number, level: number = 0, row_count: number = 1, col_count: number = 1) {
         // 修正下x,y,w,h?
         this.x = x;
@@ -29,6 +27,7 @@ export class Grid<T extends _T> implements Rect {
         this.row_h = Math.ceil(h / row_count);
         this.col_w = Math.ceil(w / col_count);
         this.level = level;
+        this.expandable = level === 0;
         if (row_count > 1 || col_count > 1) this.initItems(row_count, col_count);
     }
 
@@ -57,7 +56,7 @@ export class Grid<T extends _T> implements Rect {
             for (let j = ci; j < ce; ++j) {
                 const idx = i * this.col_count + j;
                 const item = items[idx];
-                item.add(data);
+                item.adds(data.clip(item) as T[])
             }
         }
     }
@@ -68,7 +67,17 @@ export class Grid<T extends _T> implements Rect {
 
     add(data: T) {
         this.data.push(data);
+        const bbox = data.bbox();
+        if (this.expandable) {
+            this.expand(bbox.x, bbox.y, bbox.w, bbox.h);
+        } else {
+            if (!contains_rect(this, bbox)) throw new Error();
+        }
         if (this.items) this._add2item(data);
+    }
+
+    adds(data: T[]) {
+        data.forEach(d => this.add(d))
     }
 
     itemAt(row: number, col: number) {
