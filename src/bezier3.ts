@@ -1,5 +1,5 @@
 import { Line } from "./line";
-import { float_accuracy, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation } from "./basic"
+import { align, alignX, float_accuracy, isLine, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation } from "./basic"
 
 const ZERO = { x: 0, y: 0 };
 
@@ -22,6 +22,13 @@ abstract class Bezier implements Segment {
     constructor(p0: Point, p1: Point, p2: Point, p3: Point)
     constructor(...points: Point[]) {
         this.points = points
+    }
+
+
+    _isLine?: boolean
+    get isLine() {
+        if (this._isLine === undefined) this._isLine = isLine(this.points)
+        return this._isLine;
     }
 
     abstract extrema(): number[];
@@ -105,10 +112,12 @@ export class Bezier2 extends Bezier {
         return "Q"
     }
 
+    _extrema?: number[]
     // Bzier2(t) = P0*(1-t)^2 + 2*P1*(1-t)*t + P2*t^2
     // Bzier2'(t) = 2*(1-t)*(P1-P0) + 2*t*(P2-P1) = 2*t*(P2-2*P1+P0)+2*(P1-P0) 直线方程.
     // t = (P1-P0)/(P2-2*P1+P0)时取得极值
     extrema() {
+        if (this._extrema) return this._extrema;
         const p0 = this.points[0];
         const p1 = this.points[1];
         const p2 = this.points[2];
@@ -128,7 +137,8 @@ export class Bezier2 extends Bezier {
         const accept = (t: number, i: number) => {
             return t >= 0 && t <= 1 && ret.indexOf(t) === i;
         }
-        return ret.filter(accept).sort((a, b) => a - b)
+        this._extrema = ret.filter(accept).sort((a, b) => a - b)
+        return this._extrema;
     }
 
     locate(p: Point): number[] {
@@ -215,7 +225,7 @@ export class Bezier2 extends Bezier {
         return [p0, p3, p4, p2]
     }
 
-    intersect(seg: Segment): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+    intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         if (seg.type === 'C') {
             return seg.intersect(this).map(i => {
                 if (i.type === 'overlap') {
@@ -238,12 +248,39 @@ export class Bezier2 extends Bezier {
         }
         return this._intersectBezier2(seg as Bezier2);
     }
-    _intersectLine(line: Line): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+    _intersectLine(line: Line): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         // 判定当前curve是否是直线
         // 变换到以直接以L为x轴或者y轴的空间，解方程。同locate
-        throw new Error("Method not implemented.");
+        if (this._isLine) {
+            // 计算最大最小值 // 应该不用，这里是计算封闭区间，计算stroke时要处理？
+            // const extrema = this.extrema();
+            return new Line(this.points[0], this.points[1]).intersect(line);
+        }
+
+        const alignpoints = alignX(this.points, line);
+        const p0 = alignpoints[0];
+        const p1 = alignpoints[1];
+        const p2 = alignpoints[2];
+        const a = p0 - 2 * p1 + p2
+        const b = -2 * (p0 - p1)
+        const c = p0
+
+        const fix = (t: number) => {
+            if (Math.abs(t) < float_accuracy) t = 0;
+            else if (Math.abs(t - 1) < float_accuracy) t = 1;
+            return t;
+        }
+        const retx = solveQuadraticEquation(a, b, c).map(fix).filter((t) => t >= 0 && t <= 1);
+        return retx.reduce((r, t) => {
+            const p = this.pointAt(t);
+            const l = line.locate(p);
+            if (l.length > 0) {
+                r.push({ type: "intersect", t0: t, t1: l[0] })
+            }
+            return r;
+        }, [] as { type: "intersect"; t0: number; t1: number; }[])
     }
-    _intersectBezier2(curve: Bezier2): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+    _intersectBezier2(curve: Bezier2): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         // Q与C也是可能重合的,转换到C判定重合
         throw new Error("Method not implemented.");
     }
@@ -261,6 +298,8 @@ export class Bezier3 extends Bezier {
         return "C"
     }
 
+    _extrema?: number[]
+
     // Pascal's triangle
     //    1      n=0
     //   1 1     n=1
@@ -271,6 +310,9 @@ export class Bezier3 extends Bezier {
     // Bezier3'(t) = 3*(-P0+3*P1-3P2+P3)*t^2+6*(P0-2*P1+P2)*t+3*(P1-P0)
     // t=(-b(+-)√(b^2-4*a*c))/(2*a),a=3*(-P0+3*P1-3P2+P3),b=6*(P0-2*P1+P2),c=3*(P1-P0)
     extrema() {
+
+        if (this._extrema) return this._extrema;
+
         const p0 = this.points[0];
         const p1 = this.points[1];
         const p2 = this.points[2];
@@ -299,7 +341,8 @@ export class Bezier3 extends Bezier {
         const accept = (t: number, i: number) => {
             return t >= 0 && t <= 1 && ret.indexOf(t) === i;
         }
-        return ret.filter(accept).sort((a, b) => a - b)
+        this._extrema = ret.filter(accept).sort((a, b) => a - b)
+        return this._extrema;
     }
 
     // 返回true，不会相交，false，有可能相交
@@ -399,7 +442,7 @@ export class Bezier3 extends Bezier {
         ];
     }
 
-    intersect(seg: Segment): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+    intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         if (seg.type === 'L') {
             return this._intersectLine(seg as Line);
         }
@@ -408,16 +451,46 @@ export class Bezier3 extends Bezier {
         }
         return this._intersectBezier3(seg as Bezier3);
     }
-    _intersectLine(line: Line): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+    _intersectLine(line: Line): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         // 判定当前curve是否是直线
-        // 变换到以直接以L为x轴或者y轴的空间，解方程。同locate
-        throw new Error("Method not implemented.");
+        if (this._isLine) {
+            // 计算最大最小值 // 应该不用，这里是计算封闭区间，计算stroke时要处理？
+            // const extrema = this.extrema();
+            return new Line(this.points[0], this.points[1]).intersect(line);
+        }
+        const alignpoints = alignX(this.points, line);
+        const p0 = alignpoints[0];
+        const p1 = alignpoints[1];
+        const p2 = alignpoints[2];
+        const p3 = alignpoints[3];
+        const a3 = -p0 + 3 * p1 - 3 * p2 + p3
+        const a2 = 3 * p0 - 6 * p1 + 3 * p2
+        const a1 = -3 * p0 + 3 * p1
+        const a0 = p0
+
+        const fix = (t: number) => {
+            if (Math.abs(t) < float_accuracy) t = 0;
+            else if (Math.abs(t - 1) < float_accuracy) t = 1;
+            return t;
+        }
+
+        const retx = solveCubicEquation(a3, a2, a1, a0).map(fix).filter((t) => t >= 0 && t <= 1);
+        // 判断这个t所在的点，在line上
+
+        return retx.reduce((r, t) => {
+            const p = this.pointAt(t);
+            const l = line.locate(p);
+            if (l.length > 0) {
+                r.push({ type: "intersect", t0: t, t1: l[0] })
+            }
+            return r;
+        }, [] as { type: "intersect"; t0: number; t1: number; }[])
     }
-    _intersectBezier2(curve: Bezier2): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+    _intersectBezier2(curve: Bezier2): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         // Q与C也是可能重合的,转换到C判定重合
         throw new Error("Method not implemented.");
     }
-    _intersectBezier3(curve: Bezier3): ({ type: "overlap"; t0: number; t1: number; t2: number; t3: number; } | { type: "intersect"; t0: number; t1: number; })[] {
+    _intersectBezier3(curve: Bezier3): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         // Q与C也是可能重合的,转换到C判定重合
         throw new Error("Method not implemented.");
     }

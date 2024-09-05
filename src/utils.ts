@@ -492,10 +492,10 @@ export const utils = {
     },
 
     roots: function (points: Point[], line?: Line): number[] {
-        line = line || { p1: { x: 0, y: 0 }, p2: { x: 1, y: 0 } };
+        // line = line || { p1: { x: 0, y: 0 }, p2: { x: 1, y: 0 } };
 
         const order = points.length - 1;
-        const aligned = utils.align(points, line);
+        const aligned = line ? utils.align(points, line) : points;
         const accept = function (t: number) {
             return 0 <= t && t <= 1;
         };

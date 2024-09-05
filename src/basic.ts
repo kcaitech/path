@@ -1,5 +1,9 @@
 export const float_accuracy = 1e-7;
 
+export function float_eq(a: number, b: number) {
+    return Math.abs(a - b) < float_accuracy;
+}
+
 export type Point = {
     x: number;
     y: number;
@@ -120,4 +124,48 @@ export function solveCubicEquation(a: number, b: number, c: number, d: number): 
     return roots.filter((v, i, arr) => {
         return arr.indexOf(v) === i
     }).sort((a, b) => a - b);
+}
+
+export function dist(p1: Point, p2: Point) {
+    const dx = p1.x - p2.x,
+        dy = p1.y - p2.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+export function align(points: Point[], line: Line) {
+    const tx = line.p1.x;
+    const ty = line.p1.y;
+    const a = -Math.atan2(line.p2.y - ty, line.p2.x - tx);
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    const d = (v: Point) => {
+        const x = v.x - tx;
+        const y = v.y - ty;
+        return {
+            x: x * cos - y * sin,
+            y: x * sin + y * cos,
+        }
+    }
+    return points.map(d);
+}
+
+export function alignX(points: Point[], line: Line) {
+    const tx = line.p1.x;
+    const ty = line.p1.y;
+    const a = -Math.atan2(line.p2.y - ty, line.p2.x - tx);
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    const d = (v: Point) => {
+        const x = v.x - tx;
+        const y = v.y - ty;
+        return x * cos - y * sin
+    }
+    return points.map(d);
+}
+
+export function isLine(points: Point[]) {
+    const order = points.length - 1;
+    const aligned = align(points, { p1: points[0], p2: points[order] });
+    const baselength = dist(points[0], points[order]);
+    return aligned.reduce((t, p) => t + Math.abs(p.y), 0) < baselength / 100; // 压扁了的
 }
