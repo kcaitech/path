@@ -1,6 +1,16 @@
-import { contains_rect, Rect, Segment } from "./basic"
+import { contains_rect, PathCamp, Rect, Segment } from "./basic"
 
-export class Grid<T extends Segment> implements Rect {
+export interface SegmentNode {
+    seg: Segment,
+    t0: number,
+    t1: number,
+    parent?: SegmentNode,
+    childs: SegmentNode[],
+    camp: PathCamp,
+    grid: Grid
+}
+
+export class Grid implements Rect {
     x: number
     y: number
     w: number
@@ -11,8 +21,8 @@ export class Grid<T extends Segment> implements Rect {
     row_h: number
     col_w: number
 
-    data: T[] = []
-    items?: Grid<T>[]
+    data: SegmentNode[] = []
+    items?: Grid[]
 
     expandable: boolean
 
@@ -37,14 +47,14 @@ export class Grid<T extends Segment> implements Rect {
             for (let j = 0; j < col_count; ++j) {
                 const x = j * this.col_w + this.x;
                 const y = i * this.row_h + this.y;
-                this.items.push(new Grid<T>(x, y, this.col_w, this.row_h, this.level + 1));
+                this.items.push(new Grid(x, y, this.col_w, this.row_h, this.level + 1));
             }
         }
     }
 
-    private _add2item(data: T) {
+    private _add2item(data: SegmentNode) {
         const items = this.items!;
-        const bbox = data.bbox(); // 可以超出当前grid范围的
+        const bbox = data.seg.bbox(); // 可以超出当前grid范围的
 
         const ci = Math.max(0, Math.floor((bbox.x - this.x) / this.col_w));
         const ri = Math.max(0, Math.floor((bbox.y - this.y) / this.row_h));
@@ -56,28 +66,59 @@ export class Grid<T extends Segment> implements Rect {
             for (let j = ci; j < ce; ++j) {
                 const idx = i * this.col_count + j;
                 const item = items[idx];
-                item.adds(data.clip(item) as T[])
+                const childs = data.seg.clip(item);
+                childs.forEach(c => {
+                    data.childs.push(item.add(c.seg, data.camp, data, c.t0, c.t1))
+                })
             }
         }
     }
 
     private _newItem(x: number, y: number) {
-        return new Grid<T>(x, y, this.col_w, this.row_h, this.level + 1);
+        return new Grid(x, y, this.col_w, this.row_h, this.level + 1);
     }
 
-    add(data: T) {
-        this.data.push(data);
+    private add(data: Segment, camp?: PathCamp, parent?: SegmentNode, t0?: number, t1?: number
+    ) {
+        const node: SegmentNode = {
+            seg: data,
+            parent,
+            t0: t0 ?? 0,
+            t1: t1 ?? 1,
+            childs: [],
+            camp: camp ?? PathCamp.Subject,
+            grid: this
+        }
+        this.data.push(node);
         const bbox = data.bbox();
         if (this.expandable) {
             this.expand(bbox.x, bbox.y, bbox.w, bbox.h);
         } else {
             if (!contains_rect(this, bbox)) throw new Error();
         }
-        if (this.items) this._add2item(data);
+        if (this.items) this._add2item(node);
+        return node;
     }
 
-    adds(data: T[]) {
-        data.forEach(d => this.add(d))
+    adds(data: Segment[], bbox: Rect, camp?: PathCamp) {
+        if (this.expandable) {
+            this.expand(bbox.x, bbox.y, bbox.w, bbox.h);
+        } else {
+            if (!contains_rect(this, bbox)) throw new Error();
+        }
+        return data.map(d => {
+            const node: SegmentNode = {
+                seg: d,
+                t0: 0,
+                t1: 1,
+                childs: [],
+                camp: camp ?? PathCamp.Subject,
+                grid: this
+            }
+            this.data.push(node);
+            if (this.items) this._add2item(node);
+            return node;
+        })
     }
 
     itemAt(row: number, col: number) {
@@ -116,7 +157,7 @@ export class Grid<T extends Segment> implements Rect {
             this.col_count += c;
             // 在前面插入c列
             for (let i = 0; i < this.row_count; ++i) {
-                const n: Grid<T>[] = [];
+                const n: Grid[] = [];
                 for (let k = 0; k < c; ++k) {
                     const x = k * this.col_w + this.x;
                     const y = i * this.row_h + this.y;
@@ -136,7 +177,7 @@ export class Grid<T extends Segment> implements Rect {
             this.col_count += c;
             // 在后面插入c列
             for (let i = 0; i < this.row_count; ++i) {
-                const n: Grid<T>[] = [];
+                const n: Grid[] = [];
                 for (let k = 0; k < c; ++k) {
                     const x = k * this.col_w + savex;
                     const y = i * this.row_h + this.y;
@@ -155,7 +196,7 @@ export class Grid<T extends Segment> implements Rect {
             this.row_count += c;
 
             for (let i = 0; i < c; ++i) {
-                const n: Grid<T>[] = [];
+                const n: Grid[] = [];
                 for (let k = 0; k < this.col_count; ++k) {
                     const x = k * this.col_w + this.x;
                     const y = i * this.row_h + this.y;
@@ -174,7 +215,7 @@ export class Grid<T extends Segment> implements Rect {
             const row_start = this.items.length;
             this.row_count += c;
             for (let i = 0; i < c; ++i) {
-                const n: Grid<T>[] = [];
+                const n: Grid[] = [];
                 for (let k = 0; k < this.col_count; ++k) {
                     const x = k * this.col_w + this.x;
                     const y = i * this.row_h + savey;

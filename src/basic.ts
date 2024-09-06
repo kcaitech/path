@@ -60,11 +60,11 @@ export type Segment = {
     color?: number;
     camp?: PathCamp
 
-    bbox(): Rect;
+    bbox(): Rect & { x2: number, y2: number };
     intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[];
     locate(p: Point): number[];
     split(t: number): Segment[];
-    clip(rect: Rect): Segment[];
+    clip(rect: Rect): { seg: Segment, t0: number, t1: number }[];
 }
 
 

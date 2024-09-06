@@ -3,7 +3,7 @@ import { float_accuracy, intersect_rect, Point, Rect, Segment } from "./basic";
 export class Line implements Segment {
     p1: Point
     p2: Point
-    _bbox: Rect
+    _bbox: Rect & { x2: number, y2: number }
     color?: number
     origin?: { segment: Segment; t0: number; t1: number; };
 
@@ -24,9 +24,11 @@ export class Line implements Segment {
 
         const x = Math.min(this.p1.x, this.p2.x)
         const y = Math.min(this.p1.y, this.p2.y)
-        const w = Math.max(this.p1.x, this.p2.x) - x;
-        const h = Math.max(this.p1.y, this.p2.y) - y;
-        this._bbox = { x, y, w, h }
+        const x2 = Math.max(this.p1.x, this.p2.x)
+        const y2 = Math.max(this.p1.y, this.p2.y)
+        const w = x2 - x;
+        const h = y2 - y;
+        this._bbox = { x, y, w, h, x2, y2 }
     }
 
     bbox() {
@@ -41,7 +43,7 @@ export class Line implements Segment {
         return [new Line(this.p1.x, this.p1.y, x, y), new Line(x, y, this.p2.x, this.p2.y)]
     }
 
-    clip(rect: Rect): Segment[] {
+    clip(rect: Rect): { seg: Line, t0: number, t1: number }[] {
         throw new Error()
     }
 

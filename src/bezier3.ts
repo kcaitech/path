@@ -118,7 +118,7 @@ abstract class Bezier implements Segment {
 
     abstract intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] // 相交、不相交、重合
 
-    abstract clip(rect: Rect): Bezier2[];
+    abstract clip(rect: Rect): { seg: Bezier, t0: number, t1: number }[];
 }
 
 export class Bezier2 extends Bezier {
@@ -233,7 +233,7 @@ export class Bezier2 extends Bezier {
         throw new Error()
     }
 
-    clip(rect: Rect): Bezier2[] {
+    clip(rect: Rect): { seg: Bezier2, t0: number, t1: number }[] {
         throw new Error()
     }
 
@@ -455,7 +455,7 @@ export class Bezier3 extends Bezier {
         ];
     }
 
-    clip(rect: Rect): Bezier2[] {
+    clip(rect: Rect): { seg: Bezier3, t0: number, t1: number }[] {
         throw new Error()
     }
 
