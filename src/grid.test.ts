@@ -1,7 +1,7 @@
 import { Grid } from "./grid";
 
 
-function check_items(grid: Grid<any>) {
+function check_items(grid: Grid) {
     const items = grid.items!;
     for (let i = 0; i < grid.row_count; ++i) {
         for (let j = 0; j < grid.col_count; ++j) {
