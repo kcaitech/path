@@ -45,6 +45,8 @@ export class Line implements Segment {
 
     clip(rect: Rect): { seg: Line, t0: number, t1: number }[] {
         // todo
+        if (!intersect_rect(this.bbox(), rect)) return []
+
         throw new Error()
     }
 
@@ -69,10 +71,55 @@ export class Line implements Segment {
         return []
     }
 
-    intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] { // 三种情况: 相交、不相交、重合
+    coincident(seg: Segment): { type: "coincident"; t0: number; t1: number; t2: number; t3: number; }[] {
         if (seg.type !== 'L') {
-            return seg.intersect(this).map(i => {
-                if (i.type === 'overlap') {
+            return seg.coincident(this).map(i => {
+                const t2 = i.t2;
+                i.t2 = i.t0;
+                const t3 = i.t3;
+                i.t3 = i.t1;
+                i.t0 = t2;
+                i.t1 = t3;
+                return i;
+            });
+        }
+
+        const rhs = seg as Line;
+        if (!intersect_rect(this.bbox(), rhs.bbox())) return [];
+
+        const p1 = this.p1;
+        const p2 = this.p2;
+        const p3 = rhs.p1;
+        const p4 = rhs.p2;
+        const x1 = p1.x, y1 = p1.y,
+            x2 = p2.x, y2 = p2.y,
+            x3 = p3.x, y3 = p3.y,
+            x4 = p4.x, y4 = p4.y;
+        // line intersect
+        const d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4); // 法向量
+        if (d === 0) {
+            // 平行且区间相交
+            // 判断是否重合
+            const l0 = this.locate(rhs.p1);
+            const l1 = this.locate(rhs.p2);
+            // 包含
+            if (l0.length > 0 && l1.length > 0) return [{ type: "coincident", t0: l0[0], t1: l1[0], t2: 0, t3: 1 }]
+            const l2 = rhs.locate(this.p1);
+            const l3 = rhs.locate(this.p2);
+            // if (l2.length > 0 && l3.length > 0) return [{ type: "coincident", t0: 0, t1: 1, t2: l2[0], t3: l3[0] }]
+            // 部分重合
+            if ((l0.length > 0 || l1.length > 0) && (l2.length > 0 || l3.length > 0)) {
+                return [{ type: "coincident", t0: l0[0] ?? 0, t1: l1[0] ?? 1, t2: l2[0] ?? 0, t3: l3[0] ?? 1 }]
+            }
+            // 不重合。这个存疑
+        }
+        return []
+    }
+
+    intersect(seg: Segment, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] { // 三种情况: 相交、不相交、重合
+        if (seg.type !== 'L') {
+            return seg.intersect(this, noCoincident).map(i => {
+                if (i.type === 'coincident') {
                     const t2 = i.t2;
                     i.t2 = i.t0;
                     const t3 = i.t3;
@@ -102,18 +149,21 @@ export class Line implements Segment {
         // line intersect
         const d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4); // 法向量
         if (d === 0) {
+            if (noCoincident) {
+                return []
+            }
             // 平行且区间相交
             // 判断是否重合
             const l0 = this.locate(rhs.p1);
             const l1 = this.locate(rhs.p2);
             // 包含
-            if (l0.length > 0 && l1.length > 0) return [{ type: "overlap", t0: l0[0], t1: l1[0], t2: 0, t3: 1 }]
+            if (l0.length > 0 && l1.length > 0) return [{ type: "coincident", t0: l0[0], t1: l1[0], t2: 0, t3: 1 }]
             const l2 = rhs.locate(this.p1);
             const l3 = rhs.locate(this.p2);
-            // if (l2.length > 0 && l3.length > 0) return [{ type: "overlap", t0: 0, t1: 1, t2: l2[0], t3: l3[0] }]
+            // if (l2.length > 0 && l3.length > 0) return [{ type: "coincident", t0: 0, t1: 1, t2: l2[0], t3: l3[0] }]
             // 部分重合
             if ((l0.length > 0 || l1.length > 0) && (l2.length > 0 || l3.length > 0)) {
-                return [{ type: "overlap", t0: l0[0] ?? 0, t1: l1[0] ?? 1, t2: l2[0] ?? 0, t3: l3[0] ?? 1 }]
+                return [{ type: "coincident", t0: l0[0] ?? 0, t1: l1[0] ?? 1, t2: l2[0] ?? 0, t3: l3[0] ?? 1 }]
             }
             // 不重合。这个存疑
             return []

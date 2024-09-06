@@ -1,5 +1,5 @@
 import { Line } from "./line";
-import { align, alignX, float_accuracy, isLine, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation } from "./basic"
+import { alignX, float_accuracy, float_eq, intersect_rect, isLine, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation } from "./basic"
 
 const ZERO = { x: 0, y: 0 };
 
@@ -51,8 +51,8 @@ abstract class Bezier implements Segment {
     _extrema?: number[]
     abstract extrema(): number[];
 
-    _bbox?: Rect
-    bbox(): Rect {
+    _bbox?: Rect & { x2: number, y2: number }
+    bbox(): Rect & { x2: number, y2: number } {
         if (this._bbox) return this._bbox;
         const p0 = this.points[0];
         const p2 = this.points[this.points.length - 1];
@@ -67,7 +67,7 @@ abstract class Bezier implements Segment {
             miny = Math.min(miny, p.y);
             maxy = Math.max(maxy, p.y);
         })
-        this._bbox = { x: minx, y: miny, w: maxx - minx, h: maxy - miny }
+        this._bbox = { x: minx, y: miny, w: maxx - minx, h: maxy - miny, x2: maxx, y2: maxy }
         return this._bbox;
     }
 
@@ -116,10 +116,174 @@ abstract class Bezier implements Segment {
 
     abstract split(t: number): Bezier[];
 
-    abstract intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] // 相交、不相交、重合
+    abstract splits(ts: number[]): Bezier[];
+
+    abstract intersect(seg: Segment): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] // 相交、不相交、重合
 
     abstract clip(rect: Rect): { seg: Bezier, t0: number, t1: number }[];
+
+    abstract toBezier3(): Point[];
+
+    coincident(seg: Bezier): { type: "coincident"; t0: number; t1: number; t2: number; t3: number; }[] {
+        if (seg.points.length < this.points.length) {
+            const coincident = searchCoincident(seg, this); // bezier2在前效率好点
+            return coincident.map(c => {
+                const _c = { type: "coincident", t0: c.t2, t1: c.t3, t2: c.t0, t3: c.t1 } as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
+                return _c;
+            })
+        }
+        const coincident = searchCoincident(this, seg);
+        return coincident.map(c => {
+            const _c = c as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
+            _c.type = 'coincident'
+            return _c;
+        })
+    }
 }
+
+function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number }[] {
+
+    // 能否再快点？
+
+    const box1 = curve1.bbox();
+    const box2 = curve2.bbox();
+    if (!intersect_rect(curve1.bbox(), curve2.bbox())) return []
+
+    const box1ispoint = box1.w < float_accuracy && box1.h < float_accuracy;
+    const box2ispoint = box2.w < float_accuracy && box2.h < float_accuracy
+    if (box1ispoint && box2ispoint) {
+        return [{ t0: 0.5, t1: 0.5 }]
+    }
+
+    let c1: Bezier[]
+    let t1: number[]
+    let c2: Bezier[]
+    let t2: number[]
+    if (box1ispoint) {
+        c1 = [curve1]
+        t1 = [0, 1]
+    } else {
+        c1 = curve1.split(0.5)
+        t1 = [0, 0.5, 1]
+    }
+    if (box2ispoint) {
+        c2 = [curve2]
+        t2 = [0, 1]
+    } else {
+        c2 = curve2.split(0.5)
+        t2 = [0, 0.5, 1]
+    }
+
+    const ret: { t0: number, t1: number }[] = []
+    for (let i = 0, len = c1.length; i < len; ++i) {
+        const v1 = c1[i];
+        for (let j = 0, len = c2.length; j < len; ++j) {
+            const v2 = c2[j];
+            const ret1 = _binarySearch(v1, v2);
+            if (ret1.length === 0) continue;
+
+            const t11 = t1[i]
+            const t12 = t1[i + 1]
+            const d1 = t12 - t11
+            const t21 = t2[j]
+            const t22 = t2[j + 1]
+            const d2 = t22 - t21
+
+            ret1.forEach(r => {
+                ret.push({ t0: t11 + r.t0 * d1, t1: t21 + r.t1 * d2 })
+            })
+        }
+    }
+
+    return ret;
+}
+
+function binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number }[] {
+    if (!intersect_rect(curve1.bbox(), curve2.bbox())) return []
+
+    const extrema1 = curve1.extrema().filter(t => !float_eq(t, 0) && !float_eq(t, 1));
+    const extrema2 = curve2.extrema().filter(t => !float_eq(t, 0) && !float_eq(t, 1));
+
+    if (extrema1.length === 0 && extrema2.length === 0) return _binarySearch(curve1, curve2);
+
+    let c1: Bezier[]
+    let t1: number[]
+    let c2: Bezier[]
+    let t2: number[]
+
+    if (extrema1.length > 0) {
+        c1 = curve1.splits(extrema1)
+        t1 = [0, ...extrema1, 1]
+    } else {
+        c1 = [curve1]
+        t1 = [0, 1]
+    }
+    if (extrema2.length > 0) {
+        c2 = curve2.splits(extrema2)
+        t2 = [0, ...extrema2, 1]
+    } else {
+        c2 = [curve2]
+        t2 = [0, 1]
+    }
+
+    const ret: { t0: number, t1: number }[] = []
+    for (let i = 0, len = c1.length; i < len; ++i) {
+        const v1 = c1[i];
+        for (let j = 0, len = c2.length; j < len; ++j) {
+            const v2 = c2[j];
+            const ret1 = _binarySearch(v1, v2);
+            if (ret1.length === 0) continue;
+
+            const t11 = t1[i]
+            const t12 = t1[i + 1]
+            const d1 = t12 - t11
+            const t21 = t2[j]
+            const t22 = t2[j + 1]
+            const d2 = t22 - t21
+
+            ret1.forEach(r => {
+                ret.push({ t0: t11 + r.t0 * d1, t1: t21 + r.t1 * d2 })
+            })
+        }
+    }
+    return ret;
+}
+
+
+function point_eq(p1: Point, p2: Point) {
+    return float_eq(p1.x, p2.x) && float_eq(p1.y, p2.y)
+}
+
+function points_eq(points1: Point[], points2: Point[]) {
+    if (points1.length !== points2.length) return false;
+    for (let i = 0, len = points1.length; i < len; ++i) {
+        if (!point_eq(points1[i], points2[i])) return false;
+    }
+    return true;
+}
+
+function searchCoincident(curve1: Bezier, curve2: Bezier): { t0: number, t1: number, t2: number, t3: number }[] {
+    if (!intersect_rect(curve1.bbox(), curve2.bbox())) return []
+
+    const points1 = curve1.points;
+    const points2 = curve2.points;
+
+    // if (points2.length < points1.length) {
+    //     // todo 二次曲线locate效率更高
+    // }
+
+    const l1_20 = curve1.locate(points2[0]);
+    const l1_21 = curve1.locate(points2[points2.length - 1]);
+
+    if (l1_20.length === 0 && l1_21.length === 0) return []
+
+    // todo
+    if (l1_20.length > 0 && l1_21.length > 0) {
+
+    }
+    throw new Error();
+}
+
 
 export class Bezier2 extends Bezier {
 
@@ -226,7 +390,7 @@ export class Bezier2 extends Bezier {
         ];
     }
 
-    splits(t: number[]): Bezier2[] | undefined {
+    splits(t: number[]): Bezier2[] {
         if (t.length > 0) {
 
         }
@@ -249,10 +413,10 @@ export class Bezier2 extends Bezier {
         return [p0, p3, p4, p2]
     }
 
-    intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
+    intersect(seg: Segment, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         if (seg.type === 'C') {
             return seg.intersect(this).map(i => {
-                if (i.type === 'overlap') {
+                if (i.type === 'coincident') {
                     const t2 = i.t2;
                     i.t2 = i.t0;
                     const t3 = i.t3;
@@ -270,9 +434,9 @@ export class Bezier2 extends Bezier {
         if (seg.type === 'L') {
             return this._intersectLine(seg as Line);
         }
-        return this._intersectBezier2(seg as Bezier2);
+        return this._intersectBezier2(seg as Bezier2, noCoincident);
     }
-    _intersectLine(line: Line): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
+    _intersectLine(line: Line): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         // 判定当前curve是否是直线
         // 变换到以直接以L为x轴或者y轴的空间，解方程。同locate
         if (this._isLine) {
@@ -299,9 +463,30 @@ export class Bezier2 extends Bezier {
             return r;
         }, [] as { type: "intersect"; t0: number; t1: number; }[])
     }
-    _intersectBezier2(curve: Bezier2): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
-        // Q与C也是可能重合的,转换到C判定重合
-        throw new Error("Method not implemented.");
+    _intersectBezier2(curve: Bezier2, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
+
+        // todo 在最开始判断一次就可以
+        if (!noCoincident) {
+            const coincident = searchCoincident(this, curve);
+            if (coincident.length > 0) {
+                return coincident.map(c => {
+                    const _c = c as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
+                    _c.type = 'coincident'
+                    return _c;
+                })
+            }
+        }
+
+        const intersect = binarySearch(this, curve);
+        if (intersect.length > 0) {
+            return intersect.map(c => {
+                const _c = c as { type: "intersect", t0: number, t1: number }
+                _c.type = 'intersect'
+                return _c;
+            })
+        }
+
+        return [];
     }
 }
 
@@ -455,20 +640,24 @@ export class Bezier3 extends Bezier {
         ];
     }
 
+    splits(ts: number[]): Bezier[] {
+        throw new Error();
+    }
+
     clip(rect: Rect): { seg: Bezier3, t0: number, t1: number }[] {
         throw new Error()
     }
 
-    intersect(seg: Segment): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
+    intersect(seg: Segment, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         if (seg.type === 'L') {
             return this._intersectLine(seg as Line);
         }
         if (seg.type === 'Q') {
-            return this._intersectBezier2(seg as Bezier2);
+            return this._intersectBezier2(seg as Bezier2, noCoincident);
         }
-        return this._intersectBezier3(seg as Bezier3);
+        return this._intersectBezier3(seg as Bezier3, noCoincident);
     }
-    _intersectLine(line: Line): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
+    _intersectLine(line: Line): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         // 判定当前curve是否是直线
         if (this._isLine) {
             // 计算最大最小值 // 应该不用，这里是计算封闭区间，计算stroke时要处理？
@@ -497,12 +686,55 @@ export class Bezier3 extends Bezier {
             return r;
         }, [] as { type: "intersect"; t0: number; t1: number; }[])
     }
-    _intersectBezier2(curve: Bezier2): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
-        // Q与C也是可能重合的,转换到C判定重合
-        throw new Error("Method not implemented.");
+    _intersectBezier2(curve: Bezier2, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
+
+        if (!noCoincident) {
+            const coincident = searchCoincident(curve, this);
+            if (coincident.length > 0) {
+                return coincident.map(c => {
+                    const _c = { type: "coincident", t0: c.t2, t1: c.t3, t2: c.t0, t3: c.t1 } as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
+                    return _c;
+                })
+            }
+        }
+
+        const intersect = binarySearch(this, curve);
+        if (intersect.length > 0) {
+            return intersect.map(c => {
+                const _c = c as { type: "intersect", t0: number, t1: number }
+                _c.type = 'intersect'
+                return _c;
+            })
+        }
+
+        return [];
     }
-    _intersectBezier3(curve: Bezier3): ({ type: "overlap", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
-        // Q与C也是可能重合的,转换到C判定重合
-        throw new Error("Method not implemented.");
+    _intersectBezier3(curve: Bezier3, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
+
+        if (!noCoincident) {
+            const coincident = searchCoincident(this, curve);
+            if (coincident.length > 0) {
+                return coincident.map(c => {
+                    const _c = c as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
+                    _c.type = 'coincident'
+                    return _c;
+                })
+            }
+        }
+
+        const intersect = binarySearch(this, curve);
+        if (intersect.length > 0) {
+            return intersect.map(c => {
+                const _c = c as { type: "intersect", t0: number, t1: number }
+                _c.type = 'intersect'
+                return _c;
+            })
+        }
+
+        return [];
+    }
+
+    toBezier3(): Point[] {
+        return this.points
     }
 }
