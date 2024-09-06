@@ -1,6 +1,6 @@
 import { Grid, SegmentNode } from "./grid";
 import { Line } from "./line";
-import { float_eq, PathCamp, Point, Rect, Segment } from "./basic";
+import { float_eq, OpType, PathCamp, Point, Rect, Segment } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 
 type PathCmd =
@@ -8,6 +8,26 @@ type PathCmd =
     { type: "Q", x: number, y: number, x1: number, y1: number } |
     { type: "C", x: number, y: number, x1: number, y1: number, x2: number, y2: number }
 
+function reduice_bbox(arr: { bbox(): Rect & { x2: number, y2: number } }[]): Rect & { x2: number, y2: number } {
+    if (arr.length === 0) {
+        return { x: 0, y: 0, w: 0, h: 0, x2: 0, y2: 0 }
+    }
+    let bbox: Rect & { x2: number, y2: number } | undefined
+    for (let i = 0, len = arr.length; i < len; ++i) {
+        const b = arr[i].bbox();
+        if (b.w === 0 && b.h === 0) continue;
+        if (!bbox) {
+            bbox = Object.assign({}, b)
+        } else {
+            bbox.x = Math.min(bbox.x, b.x);
+            bbox.x2 = Math.max(bbox.x2, b.x2);
+            bbox.y = Math.min(bbox.y, b.y);
+            bbox.y2 = Math.max(bbox.y2, b.y2);
+        }
+    }
+    if (bbox) return bbox;
+    return { x: 0, y: 0, w: 0, h: 0, x2: 0, y2: 0 }
+}
 
 class Path1 {
     start: Point = { x: 0, y: 0 }
@@ -28,61 +48,41 @@ class Path1 {
                 case 'Q': return new Bezier2(_p, { x: c.x1, y: c.y1 }, c)
             }
         })
-        if (this.isClose && ret.length > 0) {
-            if ((!float_eq(this.start.x, p.x) || !float_eq(this.start.y, p.y))) {
-                ret.push(new Line(p, this.start))
-            } else if (this.start.x !== p.x || this.start.y !== p.y) {
-                // fix
-                const s = ret[ret.length - 1];
-                switch (s.type) {
-                    case 'C': {
-                        const _s = s as Bezier3;
-                        ret[ret.length - 1] = new Bezier3(_s.points[0], _s.points[1], _s.points[2], this.start);
-                        break;
-                    }
-                    case 'L': {
-                        const _s = s as Line;
-                        ret[ret.length - 1] = new Line(_s.p1, this.start);
-                        break;
-                    }
-                    case 'Q': {
-                        const _s = s as Bezier2;
-                        ret[ret.length - 1] = new Bezier2(_s.points[0], _s.points[1], this.start);
-                        break;
-                    }
-                }
+        this._segments = ret;
+        if (!this.isClose || ret.length === 0) return ret;
+
+        if ((!float_eq(this.start.x, p.x) || !float_eq(this.start.y, p.y))) {
+            ret.push(new Line(p, this.start))
+        }
+        else if (this.start.x !== p.x || this.start.y !== p.y) {
+            // fix
+            const s = ret[ret.length - 1];
+            if (s.type === 'C') {
+                const _s = s as Bezier3;
+                ret[ret.length - 1] = new Bezier3(_s.points[0], _s.points[1], _s.points[2], this.start);
+            } else if (s.type === 'L') {
+                const _s = s as Line;
+                ret[ret.length - 1] = new Line(_s.p1, this.start);
+            } else {
+                const _s = s as Bezier2;
+                ret[ret.length - 1] = new Bezier2(_s.points[0], _s.points[1], this.start);
             }
         }
-        this._segments = ret;
-        return this._segments;
+        return ret;
     }
     _bbox?: Rect & { x2: number, y2: number }
     bbox() {
         if (this._bbox) return this._bbox;
-        const segments = this.segments();
-        if (segments.length === 0) {
-            this._bbox = { x: 0, y: 0, w: 0, h: 0, x2: 0, y2: 0 }
-            return this._bbox;
-        }
-        const box0 = segments[0].bbox();
-        let minx = box0.x;
-        let maxx = box0.x + box0.w;
-        let miny = box0.y;
-        let maxy = box0.y + box0.h;
-        for (let i = 1, len = segments.length; i < len; ++i) {
-            const b = segments[i].bbox();
-            minx = Math.min(minx, b.x);
-            maxx = Math.max(maxx, b.x2);
-            miny = Math.min(miny, b.y);
-            maxy = Math.max(maxy, b.y2);
-        }
-        this._bbox = { x: minx, y: miny, w: maxx - minx, h: maxy - miny, x2: maxx, y2: maxy }
+        this._bbox = reduice_bbox(this.segments())
         return this._bbox;
     }
 }
 
-enum OpType { Difference, Union, Intersection, Xor }
 
+// 第一级是4*4，子级也都是4*4，最大层级4，最多可将区间分割成65536个区间
+// 实际第一级可能扩展
+
+const grid_size = 4;
 const grid_max_level = 4;
 const grid_need_split = 16;
 
@@ -93,24 +93,7 @@ export class Path {
     _bbox?: Rect & { x2: number, y2: number }
     bbox() {
         if (this._bbox) return this._bbox;
-        const paths = this._paths;
-        if (paths.length === 0) {
-            this._bbox = { x: 0, y: 0, w: 0, h: 0, x2: 0, y2: 0 }
-            return this._bbox;
-        }
-        const box0 = paths[0].bbox();
-        let minx = box0.x;
-        let maxx = box0.x + box0.w;
-        let miny = box0.y;
-        let maxy = box0.y + box0.h;
-        for (let i = 1, len = paths.length; i < len; ++i) {
-            const b = paths[i].bbox();
-            minx = Math.min(minx, b.x);
-            maxx = Math.max(maxx, b.x2);
-            miny = Math.min(miny, b.y);
-            maxy = Math.max(maxy, b.y2);
-        }
-        this._bbox = { x: minx, y: miny, w: maxx - minx, h: maxy - miny, x2: maxx, y2: maxy }
+        this._bbox = reduice_bbox(this._paths)
         return this._bbox;
     }
 
@@ -131,7 +114,7 @@ export class Path {
                 _grid.adds(p.segments(), p.bbox())
             })
         }
-        // this._bbox = undefined;
+
         if (this._bbox) {
             const b = path.bbox();
             const b1 = this._bbox;
@@ -153,7 +136,7 @@ export class Path {
             const y = Math.floor(bbox.y)
             const x2 = Math.ceil(bbox.x2)
             const y2 = Math.ceil(bbox.y2)
-            const _grid = new Grid(x, y, x2 - x, y2 - x, 0, 4, 4)
+            const _grid = new Grid(x, y, x2 - x, y2 - x, 0, grid_size, grid_size)
             this._grid = _grid;
             this._paths.forEach(p => {
                 subjectNodes.push(..._grid.adds(p.segments(), p.bbox()))

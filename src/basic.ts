@@ -19,6 +19,7 @@ export type Rect = {
     h: number
 } & Point
 
+export enum OpType { Difference, Union, Intersection, Xor }
 
 export function intersect_range(lx0: number, lx1: number, rx0: number, rx1: number): boolean {
     return lx0 < rx1 && lx1 > rx0;
