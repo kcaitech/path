@@ -175,5 +175,5 @@ export function isLine(points: Point[]) {
     const order = points.length - 1;
     const aligned = align(points, { p1: points[0], p2: points[order] });
     const baselength = dist(points[0], points[order]);
-    return aligned.reduce((t, p) => t + Math.abs(p.y), 0) < baselength / 100; // 压扁了的
+    return aligned.reduce((t, p) => t + Math.abs(p.y), 0) < Math.max(float_accuracy, baselength / 1000); // 压扁了的
 }
