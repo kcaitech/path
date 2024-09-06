@@ -51,15 +51,15 @@ export function rect_contains_point(lhs: Rect, rhs: Point): boolean {
 export enum PathCamp { Subject, Clip }
 
 export type Segment = {
-    origin?: {
-        segment: Segment,
-        t0: number,
-        t1: number
-    },
+    // origin?: {
+    //     segment: Segment,
+    //     t0: number,
+    //     t1: number
+    // },
+    // color?: number;
+    // camp?: PathCamp
 
     get type(): 'L' | 'Q' | 'C'
-    color?: number;
-    camp?: PathCamp
 
     bbox(): Rect & { x2: number, y2: number };
     intersect(seg: Segment, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[];

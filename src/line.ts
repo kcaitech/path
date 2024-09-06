@@ -4,8 +4,8 @@ export class Line implements Segment {
     p1: Point
     p2: Point
     _bbox?: Rect & { x2: number, y2: number }
-    color?: number
-    origin?: { segment: Segment; t0: number; t1: number; };
+    // color?: number
+    // origin?: { segment: Segment; t0: number; t1: number; };
 
     constructor(p1: Point, p2: Point)
     constructor(x1: number, y1: number, x2: number, y2: number)

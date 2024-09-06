@@ -15,14 +15,14 @@ abstract class Bezier implements Segment {
     points: Point[]
 
     // todo
-    discrete?: Line[]
-    d: number = 1 / 20; // 默认分割20份
-    color?: number
-    origin?: {
-        segment: Segment,
-        t0: number,
-        t1: number
-    }
+    // discrete?: Line[]
+    // d: number = 1 / 20; // 默认分割20份
+    // color?: number
+    // origin?: {
+    //     segment: Segment,
+    //     t0: number,
+    //     t1: number
+    // }
 
     abstract get type(): "Q" | "C";
 
@@ -124,7 +124,12 @@ abstract class Bezier implements Segment {
 
     abstract toBezier3(): Point[];
 
-    coincident(seg: Bezier): { type: "coincident"; t0: number; t1: number; t2: number; t3: number; }[] {
+    coincident(_seg: Segment): { type: "coincident"; t0: number; t1: number; t2: number; t3: number; }[] {
+
+        if (this.isLine) return new Line(this.points[0], this.points[this.points.length - 1]).coincident(_seg);
+        if (_seg.type === 'L') return [];
+
+        const seg = _seg as Bezier;
         if (seg.points.length < this.points.length) {
             const coincident = searchCoincident(seg, this); // bezier2在前效率好点
             return coincident.map(c => {

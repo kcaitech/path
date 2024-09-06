@@ -163,7 +163,7 @@ export class Path {
 
         // todo
         // 查找相交点
-        function findintersection(node: SegmentNode, level: number) {
+        function searchIntersection(node: SegmentNode, level: number) {
             // todo 在level0进行重合判断，后续就不用判断了，
             // 但后续还有其它seg需要判断，所以还是要进行split
             const grid = node.grid;
@@ -179,7 +179,7 @@ export class Path {
             if (node.childs.length > 0) {
                 // todo
                 node.childs.forEach(v => {
-                    findintersection(v, level + 1)
+                    searchIntersection(v, level + 1)
                 })
             } else {
                 // todo
@@ -187,7 +187,7 @@ export class Path {
         }
 
         clipNodes.forEach(n => {
-            findintersection(n, 0)
+            searchIntersection(n, 0)
         })
 
         // todo
