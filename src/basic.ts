@@ -107,9 +107,10 @@ export function solveCubicEquation(a: number, b: number, c: number, d: number): 
         const D2 = ((b / a) ** 2 - 3 * (c / a)) / 9
         const D2_sqrt = Math.sqrt(D2);
         const theta = Math.acos(D1 / Math.sqrt(D2 ** 3))
-        const x1 = -2 * D2_sqrt * Math.cos(theta / 3) - b / 3
-        const x2 = -2 * D2_sqrt * Math.cos((theta + 2 * Math.PI) / 3) - b / 3
-        const x3 = -2 * D2_sqrt * Math.cos((theta - 2 * Math.PI) / 3) - b / 3
+        const thdb = b / 3;
+        const x1 = -2 * D2_sqrt * Math.cos(theta / 3) - thdb
+        const x2 = -2 * D2_sqrt * Math.cos((theta + 2 * Math.PI) / 3) - thdb
+        const x3 = -2 * D2_sqrt * Math.cos((theta - 2 * Math.PI) / 3) - thdb
         roots = [x1, x2, x3]
     } else if (delta < 0) {
         const t = Math.sqrt((Q ** 2) / 4 - P ** 3);
