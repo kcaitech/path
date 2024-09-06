@@ -208,3 +208,30 @@ export class Path {
     }
 
 }
+
+export class PathBuilder {
+    _paths: Path1[] = []
+
+    moveTo(x: number, y: number) {
+
+    }
+    lineTo(x: number, y: number) {
+
+    }
+    quadTo(x: number, y: number, x1: number, y1: number) {
+
+    }
+    cubicTo(x: number, y: number, x1: number, y1: number, x2: number, y2: number) {
+
+    }
+    close() {
+
+    }
+
+    getPath() {
+        const path = new Path();
+        path._paths = this._paths
+        this._paths = []
+        return path;
+    }
+}
