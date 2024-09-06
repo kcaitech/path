@@ -139,6 +139,26 @@ abstract class Bezier implements Segment {
             return _c;
         })
     }
+
+    _intersectBezier(curve: Bezier, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
+
+        if (!noCoincident) {
+            const coincident = this.coincident(curve);
+            if (coincident.length > 0) return coincident;
+        }
+
+        // todo 考虑提前split好一些curve，方便复用
+        const intersect = binarySearch(this, curve);
+        if (intersect.length > 0) {
+            return intersect.map(c => {
+                const _c = c as { type: "intersect", t0: number, t1: number }
+                _c.type = 'intersect'
+                return _c;
+            })
+        }
+
+        return [];
+    }
 }
 
 function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number }[] {
@@ -414,27 +434,11 @@ export class Bezier2 extends Bezier {
     }
 
     intersect(seg: Segment, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
-        if (seg.type === 'C') {
-            return seg.intersect(this).map(i => {
-                if (i.type === 'coincident') {
-                    const t2 = i.t2;
-                    i.t2 = i.t0;
-                    const t3 = i.t3;
-                    i.t3 = i.t1;
-                    i.t0 = t2;
-                    i.t1 = t3;
-                } else {
-                    const t0 = i.t0;
-                    i.t0 = i.t1;
-                    i.t1 = t0;
-                }
-                return i;
-            });
-        }
+
         if (seg.type === 'L') {
             return this._intersectLine(seg as Line);
         }
-        return this._intersectBezier2(seg as Bezier2, noCoincident);
+        return this._intersectBezier(seg as Bezier, noCoincident);
     }
     _intersectLine(line: Line): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         // 判定当前curve是否是直线
@@ -442,7 +446,7 @@ export class Bezier2 extends Bezier {
         if (this._isLine) {
             // 计算最大最小值 // 应该不用，这里是计算封闭区间，计算stroke时要处理？
             // const extrema = this.extrema();
-            return new Line(this.points[0], this.points[1]).intersect(line);
+            return new Line(this.points[0], this.points[this.points.length - 1]).intersect(line);
         }
 
         const alignpoints = alignX(this.points, line);
@@ -462,31 +466,6 @@ export class Bezier2 extends Bezier {
             }
             return r;
         }, [] as { type: "intersect"; t0: number; t1: number; }[])
-    }
-    _intersectBezier2(curve: Bezier2, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
-
-        // todo 在最开始判断一次就可以
-        if (!noCoincident) {
-            const coincident = searchCoincident(this, curve);
-            if (coincident.length > 0) {
-                return coincident.map(c => {
-                    const _c = c as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
-                    _c.type = 'coincident'
-                    return _c;
-                })
-            }
-        }
-
-        const intersect = binarySearch(this, curve);
-        if (intersect.length > 0) {
-            return intersect.map(c => {
-                const _c = c as { type: "intersect", t0: number, t1: number }
-                _c.type = 'intersect'
-                return _c;
-            })
-        }
-
-        return [];
     }
 }
 
@@ -652,17 +631,15 @@ export class Bezier3 extends Bezier {
         if (seg.type === 'L') {
             return this._intersectLine(seg as Line);
         }
-        if (seg.type === 'Q') {
-            return this._intersectBezier2(seg as Bezier2, noCoincident);
-        }
-        return this._intersectBezier3(seg as Bezier3, noCoincident);
+        return this._intersectBezier(seg as Bezier3, noCoincident);
     }
+
     _intersectLine(line: Line): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
         // 判定当前curve是否是直线
         if (this._isLine) {
             // 计算最大最小值 // 应该不用，这里是计算封闭区间，计算stroke时要处理？
             // const extrema = this.extrema();
-            return new Line(this.points[0], this.points[1]).intersect(line);
+            return new Line(this.points[0], this.points[this.points.length - 1]).intersect(line);
         }
         const alignpoints = alignX(this.points, line);
         const p0 = alignpoints[0];
@@ -685,53 +662,6 @@ export class Bezier3 extends Bezier {
             }
             return r;
         }, [] as { type: "intersect"; t0: number; t1: number; }[])
-    }
-    _intersectBezier2(curve: Bezier2, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
-
-        if (!noCoincident) {
-            const coincident = searchCoincident(curve, this);
-            if (coincident.length > 0) {
-                return coincident.map(c => {
-                    const _c = { type: "coincident", t0: c.t2, t1: c.t3, t2: c.t0, t3: c.t1 } as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
-                    return _c;
-                })
-            }
-        }
-
-        const intersect = binarySearch(this, curve);
-        if (intersect.length > 0) {
-            return intersect.map(c => {
-                const _c = c as { type: "intersect", t0: number, t1: number }
-                _c.type = 'intersect'
-                return _c;
-            })
-        }
-
-        return [];
-    }
-    _intersectBezier3(curve: Bezier3, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
-
-        if (!noCoincident) {
-            const coincident = searchCoincident(this, curve);
-            if (coincident.length > 0) {
-                return coincident.map(c => {
-                    const _c = c as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
-                    _c.type = 'coincident'
-                    return _c;
-                })
-            }
-        }
-
-        const intersect = binarySearch(this, curve);
-        if (intersect.length > 0) {
-            return intersect.map(c => {
-                const _c = c as { type: "intersect", t0: number, t1: number }
-                _c.type = 'intersect'
-                return _c;
-            })
-        }
-
-        return [];
     }
 
     toBezier3(): Point[] {
