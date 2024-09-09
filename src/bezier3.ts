@@ -113,11 +113,29 @@ abstract class Bezier implements Segment {
 
     abstract split(t: number): Bezier[];
 
-    abstract splits(ts: number[]): Bezier[];
+    splits(ts: number[]): Bezier[] {
+        const ret = []
+        // ts需要由小到大
+        ts = ts.splice(0).sort((a, b) => a - b)
+        let curve: Bezier = this
+        for (let i = 0, len = ts.length; i < len; ++i) {
+            const t = ts[i];
+            if (float_eq(t, 1)) break;
+            const sp = curve.split(t);
+            curve = sp[sp.length - 1];
+            ret.push(...sp.slice(0, sp.length - 1))
+            for (let j = i + 1; j < len; ++j) ts[j] = (ts[j] - t) / (1 - t);
+        }
+        if (curve !== this) {
+            ret.push(curve)
+        }
+        return ret;
+    }
 
     abstract intersect(seg: Segment): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] // 相交、不相交、重合
 
     intersect2(rect: Rect): boolean {
+        // todo
         throw new Error()
     }
 
@@ -471,13 +489,6 @@ export class Bezier2 extends Bezier {
         ];
     }
 
-    splits(t: number[]): Bezier2[] {
-        if (t.length > 0) {
-
-        }
-        throw new Error()
-    }
-
     clip(rect: Rect): { seg: Bezier2, t0: number, t1: number }[] {
         throw new Error()
     }
@@ -678,10 +689,6 @@ export class Bezier3 extends Bezier {
             new Bezier3(p0, p01, p012, p0123),
             new Bezier3(p0123, p123, p23, p3)
         ];
-    }
-
-    splits(ts: number[]): Bezier[] {
-        throw new Error();
     }
 
     clip(rect: Rect): { seg: Bezier3, t0: number, t1: number }[] {
