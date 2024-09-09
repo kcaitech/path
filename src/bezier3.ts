@@ -11,6 +11,15 @@ const fix01 = function (t: number) {
 
 const filt01 = function (t: number) { return t >= 0 && t <= 1 }
 
+
+interface DiscreteNode {
+    t0: number
+    t1: number
+    curve: Bezier
+    parent?: DiscreteNode
+    childs?: DiscreteNode[]
+}
+
 abstract class Bezier implements Segment {
     points: Point[]
 
@@ -134,9 +143,65 @@ abstract class Bezier implements Segment {
 
     abstract intersect(seg: Segment): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] // 相交、不相交、重合
 
-    intersect2(rect: Rect): boolean {
+    // 预先split的curve,用于intersect判断 // 
+    _discrete?: DiscreteNode[]
+    discreate(): DiscreteNode[] {
+        if (this._discrete) return this._discrete;
+
+        const nodes: DiscreteNode[] = []
+
+        const extrema = this.extrema().filter(t => !float_eq(t, 0) && !float_eq(t, 1));
+        if (extrema.length > 0) {
+            const curves = this.splits(extrema);
+            curves.forEach(c => c._extrema = []); // 不再需要计算极值
+            extrema.push(1);
+            if (extrema.length !== curves.length) throw new Error();
+            let pt = 0
+            for (let i = 0, len = extrema.length; i < len; ++i) {
+                const t1 = extrema[i]
+                nodes.push({
+                    t0: pt,
+                    t1,
+                    curve: curves[i]
+                })
+                pt = t1
+            }
+        } else {
+            nodes.push({
+                t0: 0,
+                t1: 1,
+                curve: this
+            })
+        }
+
+        // split sub curve
         // todo
-        throw new Error()
+        // 二分或者几分，直到点的距离小于1或者达到一定层级
+
+
+        if (extrema.length > 0) {
+            this._discrete = nodes;
+        } else {
+            this._discrete = nodes[0].childs!
+        }
+
+        return this._discrete;
+    }
+
+    intersect2(rect: Rect): boolean {
+        const discreate = this.discreate().slice(0);
+
+        while (discreate.length > 0) {
+            const d = discreate.pop()!;
+            if (intersect_rect(rect, d.curve.bbox())) {
+                if (d.childs) {
+                    discreate.push(...d.childs)
+                } else {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // abstract clip(rect: Rect): { seg: Bezier, t0: number, t1: number }[];
@@ -168,8 +233,63 @@ abstract class Bezier implements Segment {
             if (coincident.length > 0) return coincident;
         }
 
-        // todo 考虑提前split好一些curve，方便复用
-        const intersect = binarySearch(this, curve) as { type: "intersect", t0: number, t1: number }[];
+        const pending: { c1: Bezier, c2: Bezier }[] = []
+        const findPending0 = (d0: DiscreteNode, discreate1: DiscreteNode[]) => {
+            for (let i = 0, len = discreate1.length; i < len; ++i) {
+                const d1 = discreate1[i];
+                if (intersect_rect(d0.curve.bbox(), d1.curve.bbox())) {
+                    if (d1.childs) {
+                        findPending0(d0, d1.childs)
+                    } else {
+                        pending.push({ c1: d0.curve, c2: d1.curve })
+                    }
+                }
+            }
+        }
+        const findPending1 = (discreate0: DiscreteNode[], d1: DiscreteNode) => {
+            for (let i = 0, len = discreate0.length; i < len; ++i) {
+                const d0 = discreate0[i];
+                if (intersect_rect(d0.curve.bbox(), d1.curve.bbox())) {
+                    if (d0.childs) {
+                        findPending1(d0.childs, d1)
+                    } else {
+                        pending.push({ c1: d0.curve, c2: d1.curve })
+                    }
+                }
+            }
+        }
+        const findPending = (discreate0: DiscreteNode[], discreate1: DiscreteNode[]) => {
+            for (let i = 0, len = discreate0.length; i < len; ++i) {
+                const d0 = discreate0[i];
+                for (let j = 0, len = discreate1.length; j < len; ++j) {
+                    const d1 = discreate1[j];
+                    if (intersect_rect(d0.curve.bbox(), d1.curve.bbox())) {
+                        if (d0.childs) {
+                            if (d1.childs) {
+                                findPending(d0.childs, d1.childs)
+                            }
+                            else {
+                                findPending1(d0.childs, d1)
+                            }
+                        } else {
+                            if (d1.childs) {
+                                findPending0(d0, d1.childs)
+                            }
+                            else {
+                                pending.push({ c1: d0.curve, c2: d1.curve })
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        findPending(this.discreate(), curve.discreate());
+
+        const intersect = pending.reduce((p, v) => {
+            p.push(...(binarySearch(v.c1, v.c2) as { type: "intersect", t0: number, t1: number }[]));
+            return p;
+        }, [] as { type: "intersect", t0: number, t1: number }[])
         if (intersect.length > 0) {
             intersect.forEach(c => c.type = 'intersect')
             return intersect;
