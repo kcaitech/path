@@ -11,6 +11,7 @@ export interface SegmentNode {
     // grid: Grid
     color?: number
     removed?: boolean
+    coincident?: boolean // 不同camp重合的
 }
 
 export class Grid implements Rect {

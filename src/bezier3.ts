@@ -219,25 +219,23 @@ abstract class Bezier implements Segment {
         return false;
     }
 
-    // abstract clip(rect: Rect): { seg: Bezier, t0: number, t1: number }[];
-
     abstract toBezier3(): Point[];
 
-    coincident(_seg: Segment): { type: "coincident"; t0: number; t1: number; t2: number; t3: number; }[] {
+    coincident(_seg: Segment): { type: "coincident"; t0: number; t1: number; t2: number; t3: number; } | undefined {
 
         if (this.isLine) return new Line(this.points[0], this.points[this.points.length - 1]).coincident(_seg);
-        if (_seg.type === 'L') return [];
+        if (_seg.type === 'L') return;
 
         const seg = _seg as Bezier;
         if (seg.points.length < this.points.length) {
-            const coincident = searchCoincident(seg, this); // bezier2在前效率好点
-            return coincident.map(c => {
-                const _c = { type: "coincident", t0: c.t2, t1: c.t3, t2: c.t0, t3: c.t1 } as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
-                return _c;
-            })
+            const c = searchCoincident(seg, this); // bezier2在前效率好点
+            if (c) {
+                return { type: "coincident", t0: c.t2, t1: c.t3, t2: c.t0, t3: c.t1 }
+            }
+            return;
         }
-        const coincident = searchCoincident(this, seg) as { type: "coincident"; t0: number; t1: number; t2: number; t3: number; }[];
-        coincident.forEach(c => c.type = 'coincident')
+        const coincident = searchCoincident(this, seg) as { type: "coincident"; t0: number; t1: number; t2: number; t3: number; } | undefined;
+        if (coincident) coincident.type = 'coincident';
         return coincident
     }
 
@@ -245,7 +243,7 @@ abstract class Bezier implements Segment {
 
         if (!noCoincident) {
             const coincident = this.coincident(curve);
-            if (coincident.length > 0) return coincident;
+            if (coincident) return [coincident];
         }
 
         const pending: { c1: Bezier, c2: Bezier }[] = []
@@ -435,8 +433,8 @@ function points_eq(points1: Point[], points2: Point[]) {
     return true;
 }
 
-function searchCoincident(curve1: Bezier, curve2: Bezier): { t0: number, t1: number, t2: number, t3: number }[] {
-    if (!intersect_rect(curve1.bbox(), curve2.bbox())) return []
+function searchCoincident(curve1: Bezier, curve2: Bezier): { t0: number, t1: number, t2: number, t3: number } | undefined {
+    if (!intersect_rect(curve1.bbox(), curve2.bbox())) return;
 
     const findPossible = () => {
         const c2fromOnC1 = curve1.locate(curve2.from);
@@ -490,7 +488,7 @@ function searchCoincident(curve1: Bezier, curve2: Bezier): { t0: number, t1: num
     }
 
     const possible = findPossible();
-    if (possible.length === 0) return [];
+    if (possible.length === 0) return;
 
     possible.sort((a, b) => Math.abs(b.t0 - b.t1) - Math.abs(a.t0 - a.t1))
 
@@ -512,10 +510,8 @@ function searchCoincident(curve1: Bezier, curve2: Bezier): { t0: number, t1: num
         const { t0, t1, t2, t3 } = possible[i];
         const c1 = split(t0, t1, curve1);
         const c2 = split(t2, t3, curve2);
-        if (eq(c1, c2)) return [{ t0, t1, t2, t3 }]
+        if (eq(c1, c2)) return { t0, t1, t2, t3 }
     }
-
-    return [];
 }
 
 
@@ -625,10 +621,6 @@ export class Bezier2 extends Bezier {
             new Bezier2(p0, p01, p012, extrema),
             new Bezier2(p012, p12, p2, extrema)
         ];
-    }
-
-    clip(rect: Rect): { seg: Bezier2, t0: number, t1: number }[] {
-        throw new Error()
     }
 
     toBezier3() {
@@ -831,10 +823,6 @@ export class Bezier3 extends Bezier {
             new Bezier3(p0, p01, p012, p0123, extrema),
             new Bezier3(p0123, p123, p23, p3, extrema)
         ];
-    }
-
-    clip(rect: Rect): { seg: Bezier3, t0: number, t1: number }[] {
-        throw new Error()
     }
 
     intersect(seg: Segment, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {

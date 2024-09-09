@@ -161,14 +161,8 @@ export class Path {
             clipNodes.push(..._grid.adds(p.segments(), p.bbox(), PathCamp.Clip))
         })
 
-
-        // todo
         // 查找相交点
         function searchIntersection(clipNode: SegmentNode, grid: Grid, level: number, subjectNodes: Map<number, SegmentNode>) {
-            // todo 在level0进行重合判断，后续就不用判断了，
-            // 但后续还有其它seg需要判断，所以还是要进行split
-            // const grid = node.grid;
-
 
             if (!grid.dataMap.has(objectId(clipNode))) return;
 
@@ -200,7 +194,6 @@ export class Path {
             if (subjectNodes.size > 0) intersects.push({ clipNode: n, subjectNodes })
         })
 
-        // todo
         // 断开重合点、相交点
         for (let i = 0, len = intersects.length; i < len; ++i) {
             const intersect = intersects[i];
@@ -209,7 +202,7 @@ export class Path {
             for (let [k, v] of intersect.subjectNodes) {
                 const subject = v.seg;
                 const coincident = clip.coincident(subject);
-                if (coincident.length > 0) {
+                if (coincident) {
 
                     // todo 重合
                     continue;
