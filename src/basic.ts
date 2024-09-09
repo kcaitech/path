@@ -66,7 +66,8 @@ export type Segment = {
     coincident(seg: Segment): { type: "coincident", t0: number, t1: number, t2: number, t3: number }[]
     locate(p: Point): number[];
     split(t: number): Segment[];
-    clip(rect: Rect): { seg: Segment, t0: number, t1: number }[];
+    // clip(rect: Rect): { seg: Segment, t0: number, t1: number }[];
+    intersect2(rect: Rect): boolean;
 }
 
 

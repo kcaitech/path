@@ -120,7 +120,11 @@ abstract class Bezier implements Segment {
 
     abstract intersect(seg: Segment): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] // 相交、不相交、重合
 
-    abstract clip(rect: Rect): { seg: Bezier, t0: number, t1: number }[];
+    intersect2(rect: Rect): boolean {
+        throw new Error()
+    }
+
+    // abstract clip(rect: Rect): { seg: Bezier, t0: number, t1: number }[];
 
     abstract toBezier3(): Point[];
 

@@ -1,13 +1,16 @@
 import { contains_rect, PathCamp, Rect, Segment } from "./basic"
+import { objectId } from "./objectid"
 
 export interface SegmentNode {
     seg: Segment,
-    t0: number,
-    t1: number,
+    // t0: number,
+    // t1: number,
     parent?: SegmentNode,
-    childs: SegmentNode[],
+    childs?: SegmentNode[], // 被分割的子路径
     camp: PathCamp,
-    grid: Grid
+    // grid: Grid
+    color?: number
+    removed?: boolean
 }
 
 export class Grid implements Rect {
@@ -22,6 +25,7 @@ export class Grid implements Rect {
     col_w: number
 
     data: SegmentNode[] = []
+    dataMap: Map<number, SegmentNode> = new Map();
     items?: Grid[]
 
     expandable: boolean
@@ -66,10 +70,18 @@ export class Grid implements Rect {
             for (let j = ci; j < ce; ++j) {
                 const idx = i * this.col_count + j;
                 const item = items[idx];
-                const childs = data.seg.clip(item);
-                childs.forEach(c => {
-                    data.childs.push(item.add(c.seg, data.camp, data, c.t0, c.t1))
-                })
+                // todo
+
+                if (data.seg.intersect2(item)) {
+                    // item.add(data.seg, data.camp, data)
+                    // item.data.push(data)
+                    item.add(data)
+                }
+
+                // const childs = data.seg.clip(item);
+                // childs.forEach(c => {
+                //     data.childs.push(item.add(c.seg, data.camp, data, c.t0, c.t1))
+                // })
             }
         }
     }
@@ -78,24 +90,24 @@ export class Grid implements Rect {
         return new Grid(x, y, this.col_w, this.row_h, this.level + 1);
     }
 
-    private add(data: Segment, camp?: PathCamp, parent?: SegmentNode, t0?: number, t1?: number
-    ) {
-        const node: SegmentNode = {
-            seg: data,
-            parent,
-            t0: t0 ?? 0,
-            t1: t1 ?? 1,
-            childs: [],
-            camp: camp ?? PathCamp.Subject,
-            grid: this
-        }
+    private add(node: SegmentNode) {
+        // const node: SegmentNode = {
+        //     seg: data,
+        //     parent,
+        //     // t0: t0 ?? 0,
+        //     // t1: t1 ?? 1,
+        //     // childs: [],
+        //     camp: camp ?? PathCamp.Subject,
+        //     grid: this
+        // }
         this.data.push(node);
-        const bbox = data.bbox();
-        if (this.expandable) {
-            this.expand(bbox.x, bbox.y, bbox.w, bbox.h);
-        } else {
-            if (!contains_rect(this, bbox)) throw new Error();
-        }
+        this.dataMap.set(objectId(node), node)
+        // const bbox = data.bbox();
+        // if (this.expandable) {
+        //     this.expand(bbox.x, bbox.y, bbox.w, bbox.h);
+        // } else {
+        //     // if (!contains_rect(this, bbox)) throw new Error();
+        // }
         if (this.items) this._add2item(node);
         return node;
     }
@@ -104,19 +116,17 @@ export class Grid implements Rect {
         if (this.expandable) {
             this.expand(bbox.x, bbox.y, bbox.w, bbox.h);
         } else {
-            if (!contains_rect(this, bbox)) throw new Error();
+            // if (!contains_rect(this, bbox)) throw new Error();
         }
         return data.map(d => {
             const node: SegmentNode = {
                 seg: d,
-                t0: 0,
-                t1: 1,
-                childs: [],
+                // childs: [],
                 camp: camp ?? PathCamp.Subject,
-                grid: this
+                // grid: this
+                color: 0
             }
-            this.data.push(node);
-            if (this.items) this._add2item(node);
+            this.add(node);
             return node;
         })
     }

@@ -1,4 +1,4 @@
-import { float_accuracy, intersect_rect, Point, Rect, Segment } from "./basic";
+import { contains_point, contains_rect, float_accuracy, intersect_range, intersect_rect, Point, Rect, Segment } from "./basic";
 
 export class Line implements Segment {
     p1: Point
@@ -50,8 +50,35 @@ export class Line implements Segment {
         throw new Error()
     }
 
+    intersect2(rect: Rect): boolean {
+        if (!intersect_rect(this.bbox(), rect)) return false;
+        if (contains_rect(rect, this.bbox())) return true;
+        const dx = this.p2.x - this.p1.x;
+
+        if (dx === 0) { // 垂直竖线
+            return contains_point(rect.x, rect.x + rect.w, this.p1.x) && intersect_range(rect.y, rect.y + rect.h, Math.min(this.p1.y, this.p2.y), Math.max(this.p1.y, this.p2.y));
+        }
+        const fix = function (t: number) {
+            return t < 0 ? 0 : (t > 1 ? 1 : t);
+        }
+        const t0 = fix((rect.x - this.p1.x) / dx);
+        const t1 = fix((rect.x + rect.w - this.p1.x) / dx);
+
+        const p1 = this.pointAt(t0);
+        const p2 = this.pointAt(t1);
+
+        return contains_rect(rect, { x: Math.min(p1.x, p2.x), y: Math.min(p1.y, p2.y), w: Math.abs(p1.x - p2.x), h: Math.abs(p1.y - p2.y) })
+    }
+
     get type(): "L" {
         return "L"
+    }
+
+    pointAt(t: number) {
+        return {
+            x: this.p1.x + (this.p2.x - this.p1.x) * t,
+            y: this.p1.y + (this.p2.y - this.p1.y) * t
+        }
     }
 
     locate(p: Point): number[] {
