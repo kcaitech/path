@@ -68,6 +68,10 @@ export type Segment = {
     split(t: number): Segment[];
     // clip(rect: Rect): { seg: Segment, t0: number, t1: number }[];
     intersect2(rect: Rect): boolean;
+
+
+    get from(): Point;
+    get to(): Point;
 }
 
 
@@ -107,7 +111,7 @@ export function solveCubicEquation(a: number, b: number, c: number, d: number): 
         const D1 = (2 * (b / a) ** 3 - 9 * ((b / a) * (c / a)) + 27 * (d / a)) / 54
         const D2 = ((b / a) ** 2 - 3 * (c / a)) / 9
         const D2_sqrt = Math.sqrt(D2);
-        const theta = Math.acos(D1 / Math.sqrt(D2 ** 3))
+        const theta = Math.acos(D1 / (D2_sqrt ** 3))
         const thdb = b / 3;
         const x1 = -2 * D2_sqrt * Math.cos(theta / 3) - thdb
         const x2 = -2 * D2_sqrt * Math.cos((theta + 2 * Math.PI) / 3) - thdb

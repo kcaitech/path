@@ -1,4 +1,4 @@
-import { contains_rect, PathCamp, Rect, Segment } from "./basic"
+import { PathCamp, Rect, Segment } from "./basic"
 import { objectId } from "./objectid"
 
 export interface SegmentNode {
@@ -59,6 +59,7 @@ export class Grid implements Rect {
     private _add2item(data: SegmentNode) {
         const items = this.items!;
         const bbox = data.seg.bbox(); // 可以超出当前grid范围的
+        if (bbox.w === 0 && bbox.h === 0) return;
 
         const ci = Math.max(0, Math.floor((bbox.x - this.x) / this.col_w));
         const ri = Math.max(0, Math.floor((bbox.y - this.y) / this.row_h));

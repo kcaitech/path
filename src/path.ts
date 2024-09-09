@@ -1,6 +1,6 @@
 import { Grid, SegmentNode } from "./grid";
 import { Line } from "./line";
-import { contains_point, float_eq, intersect_rect, OpType, PathCamp, Point, Rect, rect_contains_point, Segment } from "./basic";
+import { float_eq, OpType, PathCamp, Point, Rect, Segment } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 import { objectId } from "./objectid";
 
@@ -313,6 +313,7 @@ export class Path {
 
         // 根据op重建路径
         // todo
+        // 使用现成的grid还是新map
 
         let saverm: SegmentNode[] | undefined
         if (type === OpType.Xor) {

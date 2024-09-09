@@ -23,6 +23,13 @@ export class Line implements Segment {
         if (dx === 0 && dy === 0) throw new Error("point");
     }
 
+    get from() {
+        return this.p1;
+    }
+    get to() {
+        return this.p2;
+    }
+
     bbox() {
         if (this._bbox) return this._bbox;
         const x = Math.min(this.p1.x, this.p2.x)
@@ -41,13 +48,6 @@ export class Line implements Segment {
         const y = this.p1.y + t * (this.p2.y - this.p1.y)
 
         return [new Line(this.p1.x, this.p1.y, x, y), new Line(x, y, this.p2.x, this.p2.y)]
-    }
-
-    clip(rect: Rect): { seg: Line, t0: number, t1: number }[] {
-        // todo
-        if (!intersect_rect(this.bbox(), rect)) return []
-
-        throw new Error()
     }
 
     intersect2(rect: Rect): boolean {

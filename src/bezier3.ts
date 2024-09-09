@@ -14,17 +14,14 @@ const filt01 = function (t: number) { return t >= 0 && t <= 1 }
 abstract class Bezier implements Segment {
     points: Point[]
 
-    // todo
-    // discrete?: Line[]
-    // d: number = 1 / 20; // 默认分割20份
-    // color?: number
-    // origin?: {
-    //     segment: Segment,
-    //     t0: number,
-    //     t1: number
-    // }
 
     abstract get type(): "Q" | "C";
+    get from() {
+        return this.points[0];
+    }
+    get to() {
+        return this.points[this.points.length - 1];
+    }
 
     constructor(p0: Point, p1: Point, p2: Point, extrema?: number[])
     constructor(p0: Point, p1: Point, p2: Point, p3: Point, extrema?: number[])
@@ -141,12 +138,9 @@ abstract class Bezier implements Segment {
                 return _c;
             })
         }
-        const coincident = searchCoincident(this, seg);
-        return coincident.map(c => {
-            const _c = c as { type: "coincident", t0: number, t1: number, t2: number, t3: number }
-            _c.type = 'coincident'
-            return _c;
-        })
+        const coincident = searchCoincident(this, seg) as { type: "coincident"; t0: number; t1: number; t2: number; t3: number; }[];
+        coincident.forEach(c => c.type = 'coincident')
+        return coincident
     }
 
     _intersectBezier(curve: Bezier, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
@@ -157,13 +151,10 @@ abstract class Bezier implements Segment {
         }
 
         // todo 考虑提前split好一些curve，方便复用
-        const intersect = binarySearch(this, curve);
+        const intersect = binarySearch(this, curve) as { type: "intersect", t0: number, t1: number }[];
         if (intersect.length > 0) {
-            return intersect.map(c => {
-                const _c = c as { type: "intersect", t0: number, t1: number }
-                _c.type = 'intersect'
-                return _c;
-            })
+            intersect.forEach(c => c.type = 'intersect')
+            return intersect;
         }
 
         return [];
@@ -294,23 +285,84 @@ function points_eq(points1: Point[], points2: Point[]) {
 function searchCoincident(curve1: Bezier, curve2: Bezier): { t0: number, t1: number, t2: number, t3: number }[] {
     if (!intersect_rect(curve1.bbox(), curve2.bbox())) return []
 
-    const points1 = curve1.points;
-    const points2 = curve2.points;
+    const findPossible = () => {
+        const c2fromOnC1 = curve1.locate(curve2.from);
+        const c2toOnC1 = curve1.locate(curve2.to);
 
-    // if (points2.length < points1.length) {
-    //     // todo 二次曲线locate效率更高
-    // }
+        if (c2fromOnC1.length === 0 && c2toOnC1.length === 0) return []
 
-    const l1_20 = curve1.locate(points2[0]);
-    const l1_21 = curve1.locate(points2[points2.length - 1]);
+        const possible: { t0: number, t1: number, t2: number, t3: number }[] = []
 
-    if (l1_20.length === 0 && l1_21.length === 0) return []
+        if (c2fromOnC1.length > 0 && c2toOnC1.length > 0) {
+            c2fromOnC1.forEach(c2fromOnC1_t => {
+                c2toOnC1.forEach(c2toOnC1_t => {
+                    possible.push({ t0: c2fromOnC1_t, t1: c2toOnC1_t, t2: 0, t3: 1 })
+                })
+            })
+            return possible;
+        }
 
-    // todo
-    if (l1_20.length > 0 && l1_21.length > 0) {
+        const c1fromOnC2 = curve2.locate(curve1.from)
+        const c1toOnC2 = curve2.locate(curve1.to)
 
+        if (c1fromOnC2.length === 0 && c1toOnC2.length === 0) return []
+
+        if (c1fromOnC2.length > 0 && c1toOnC2.length > 0) {
+            c1fromOnC2.forEach(c1fromOnC2_t => {
+                c1toOnC2.forEach(c1toOnC2_t => {
+                    possible.push({ t0: 0, t1: 1, t2: c1fromOnC2_t, t3: c1toOnC2_t })
+                })
+            })
+            return possible;
+        }
+
+        let t0, t1, t2, t3
+
+        t0 = c1fromOnC2.length > 0 ? [0] : (c2fromOnC1.length > 0 ? c2fromOnC1 : c2toOnC1)
+        t1 = c1fromOnC2.length > 0 ? (c2fromOnC1.length > 0 ? c2fromOnC1 : c2toOnC1) : [1]
+
+        t2 = c2fromOnC1.length > 0 ? [0] : (c1fromOnC2.length > 0 ? c1fromOnC2 : c1toOnC2)
+        t3 = c2fromOnC1.length > 0 ? (c1fromOnC2.length > 0 ? c1fromOnC2 : c1toOnC2) : [1];
+
+        t0.forEach(_t0 => {
+            t1.forEach(_t1 => {
+                t2.forEach(_t2 => {
+                    t3.forEach(_t3 => {
+                        possible.push({ t0: _t0, t1: _t1, t2: _t2, t3: _t3 })
+                    })
+                })
+            })
+        })
+        return possible;
     }
-    throw new Error();
+
+    const possible = findPossible();
+    if (possible.length === 0) return [];
+
+    possible.sort((a, b) => Math.abs(b.t0 - b.t1) - Math.abs(a.t0 - a.t1))
+
+    const split = (t0: number, t1: number, curve: Bezier): Bezier => {
+        const _t0 = Math.min(t0, t1);
+        const c1 = curve.split(_t0);
+        const c11 = c1[c1.length - 1].split(Math.abs(t0 - t1) / (1 - _t0));
+        const c111 = c11[c11.length - 1]
+        return c111;
+    }
+
+    const eq = (c1: Bezier, c2: Bezier): boolean => {
+        const p1 = c1.toBezier3();
+        const p2 = c2.toBezier3();
+        return points_eq(p1, p2) || points_eq(p1.reverse(), p2);
+    }
+
+    for (let i = 0, len = possible.length; i < len; ++i) {
+        const { t0, t1, t2, t3 } = possible[i];
+        const c1 = split(t0, t1, curve1);
+        const c2 = split(t2, t3, curve2);
+        if (eq(c1, c2)) return [{ t0, t1, t2, t3 }]
+    }
+
+    return [];
 }
 
 
