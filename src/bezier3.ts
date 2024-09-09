@@ -175,9 +175,24 @@ abstract class Bezier implements Segment {
         }
 
         // split sub curve
-        // todo
-        // 二分或者几分，直到点的距离小于1或者达到一定层级
+        // 二分，直到点的距离小于1或者达到一4层级，最多分成32份（不算有extrema的情况）
+        const split = (nodes: DiscreteNode[], level: number) => {
+            for (let i = 0, len = nodes.length; i < len; ++i) {
+                const n = nodes[i];
+                const c = n.curve;
 
+                const bbox = c.bbox();
+                if (bbox.w < 1 && bbox.h < 1) continue;
+
+                const sp = c.split(0.5);
+                n.childs = []
+                n.childs.push({ t0: 0, t1: 0.5, curve: sp[0] })
+                n.childs.push({ t0: 0.5, t1: 1, curve: sp[1] })
+                if (level < 4) split(n.childs, level + 1);
+            }
+        }
+
+        split(nodes, 0)
 
         if (extrema.length > 0) {
             this._discrete = nodes;
@@ -603,9 +618,12 @@ export class Bezier2 extends Bezier {
         const p01 = pa(p0, p1, t);
         const p12 = pa(p1, p2, t);
         const p012 = pa(p01, p12, t);
+
+        const extrema = this.extrema().length > 0 ? undefined : [];
+
         return [
-            new Bezier2(p0, p01, p012),
-            new Bezier2(p012, p12, p2)
+            new Bezier2(p0, p01, p012, extrema),
+            new Bezier2(p012, p12, p2, extrema)
         ];
     }
 
@@ -805,9 +823,13 @@ export class Bezier3 extends Bezier {
         const p012 = pa(p01, p12, t);
         const p123 = pa(p12, p23, t);
         const p0123 = pa(p012, p123, t);
+
+        const extrema = this.extrema().length > 0 ? undefined : [];
+
+
         return [
-            new Bezier3(p0, p01, p012, p0123),
-            new Bezier3(p0123, p123, p23, p3)
+            new Bezier3(p0, p01, p012, p0123, extrema),
+            new Bezier3(p0123, p123, p23, p3, extrema)
         ];
     }
 
