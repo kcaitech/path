@@ -138,7 +138,7 @@ export class Path {
             const y = Math.floor(bbox.y)
             const x2 = Math.ceil(bbox.x2)
             const y2 = Math.ceil(bbox.y2)
-            const _grid = new Grid(x, y, x2 - x, y2 - x, 0, grid_size, grid_size)
+            const _grid = new Grid(x, y, x2 - x + 1, y2 - x + 1, 0, grid_size, grid_size)
             this._grid = _grid;
             this._paths.forEach(p => {
                 subjectNodes.push(..._grid.adds(p.segments(), p.bbox()))

@@ -47,7 +47,7 @@ const _evenodd = (grid: Grid, camp: PathCamp, p: Point, p0: Point, side: 'left' 
                     {
                         const y1 = Math.min(p1.y, p2.y);
                         const y2 = Math.max(p1.y, p2.y);
-                        if (y1 <= p0.y && y2 >= p0.y) { // 端点的处理，左闭右开？
+                        if (y1 <= p0.y && y2 >= p0.y) { // 端点的处理，左闭右开，不包含to
 
                         }
                     }
@@ -84,12 +84,12 @@ export class Grid implements Rect {
         // 修正下x,y,w,h?
         this.x = x;
         this.y = y;
-        this.w = w;
-        this.h = h;
         this.row_count = row_count;
         this.col_count = col_count;
         this.row_h = Math.ceil(h / row_count);
         this.col_w = Math.ceil(w / col_count);
+        this.w = col_count * this.col_w;
+        this.h = row_count * this.row_h;
         this.level = level;
         this.expandable = level === 0;
         if (row_count > 1 || col_count > 1) this.initItems(row_count, col_count);
@@ -178,25 +178,16 @@ export class Grid implements Rect {
         const ci = Math.max(0, Math.floor((bbox.x - this.x) / this.col_w));
         const ri = Math.max(0, Math.floor((bbox.y - this.y) / this.row_h));
 
-        const ce = Math.min(this.col_count, Math.ceil((bbox.x + bbox.w - this.x) / this.col_w));
-        const re = Math.min(this.row_count, Math.ceil((bbox.y + bbox.h - this.y) / this.row_h));
+        const ce = Math.min(this.col_count, Math.floor((bbox.x + bbox.w - this.x) / this.col_w + 1));
+        const re = Math.min(this.row_count, Math.floor((bbox.y + bbox.h - this.y) / this.row_h + 1));
 
         for (let i = ri; i < re; ++i) {
             for (let j = ci; j < ce; ++j) {
                 const idx = i * this.col_count + j;
                 const item = items[idx];
-                // todo
-
                 if (data.seg.intersect2(item)) {
-                    // item.add(data.seg, data.camp, data)
-                    // item.data.push(data)
                     item.add(data)
                 }
-
-                // const childs = data.seg.clip(item);
-                // childs.forEach(c => {
-                //     data.childs.push(item.add(c.seg, data.camp, data, c.t0, c.t1))
-                // })
             }
         }
     }
@@ -206,32 +197,15 @@ export class Grid implements Rect {
     }
 
     private add(node: SegmentNode) {
-        // const node: SegmentNode = {
-        //     seg: data,
-        //     parent,
-        //     // t0: t0 ?? 0,
-        //     // t1: t1 ?? 1,
-        //     // childs: [],
-        //     camp: camp ?? PathCamp.Subject,
-        //     grid: this
-        // }
         this.data.push(node);
         this.dataMap.set(objectId(node), node)
-        // const bbox = data.bbox();
-        // if (this.expandable) {
-        //     this.expand(bbox.x, bbox.y, bbox.w, bbox.h);
-        // } else {
-        //     // if (!contains_rect(this, bbox)) throw new Error();
-        // }
         if (this.items) this._add2item(node);
         return node;
     }
 
     adds(data: Segment[], bbox: Rect, camp?: PathCamp) {
         if (this.expandable) {
-            this.expand(bbox.x, bbox.y, bbox.w, bbox.h);
-        } else {
-            // if (!contains_rect(this, bbox)) throw new Error();
+            this.expand(bbox.x, bbox.y, bbox.w + 1, bbox.h + 1);
         }
         return data.map(d => {
             const node: SegmentNode = {

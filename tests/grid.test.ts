@@ -1,3 +1,4 @@
+import { Line } from "../src/line";
 import { Grid } from "../src/grid";
 
 
@@ -17,7 +18,7 @@ function check_items(grid: Grid) {
 }
 
 describe(`grid`, () => {
-    
+
     test('init', () => {
         const grid = new Grid(0, 0, 100, 100)
         expect(grid.x).toEqual(0);
@@ -83,7 +84,7 @@ describe(`grid`, () => {
         check_items(grid)
     })
 
-    
+
     test(`expand x`, () => {
 
         const grid = new Grid(0, 0, 100, 100)
@@ -138,5 +139,29 @@ describe(`grid`, () => {
         expect(grid.h).toEqual(175);
 
         check_items(grid)
+    })
+
+    test('adds', () => {
+        const grid = new Grid(0, 0, 100, 100)
+        grid.split(4, 4);
+        const line = new Line({ x: 25, y: 25 }, { x: 25, y: 50 })
+        grid.adds([line], line.bbox());
+
+        // check line in (1,1)
+        for (let i = 0; i < grid.row_count; ++i) {
+            for (let j = 0; j < grid.col_count; ++j) {
+                const item = grid.itemAt(i, j)
+                expect(item !== undefined).toBe(true)
+                if (i === 1 && j === 1) {
+                    expect(item?.data.length).toBe(1)
+                    expect(item?.data[0].seg).toBe(line)
+                } else if (i === 2 && j === 1) {
+                    expect(item?.data.length).toBe(1)
+                    expect(item?.data[0].seg).toBe(line)
+                } else {
+                    expect(item?.data.length).toBe(0)
+                }
+            }
+        }
     })
 })
