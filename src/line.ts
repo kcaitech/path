@@ -20,7 +20,7 @@ export class Line implements Segment {
 
         const dx = this.p2.x - this.p1.x;
         const dy = this.p2.y - this.p1.y;
-        if (dx === 0 && dy === 0) throw new Error("point");
+        if (dx === 0 && dy === 0) throw new Error("line: invalid line");
     }
 
     get from() {

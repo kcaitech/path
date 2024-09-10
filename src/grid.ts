@@ -23,10 +23,10 @@ const clampsidep = {
 }
 
 const rayend = {
-    left: (p: Point, grid: Grid) => { return { x: Math.min(p.x, grid.x), y: p.y } },
-    top: (p: Point, grid: Grid) => { return { x: p.x, y: Math.min(p.y, grid.y) } },
-    right: (p: Point, grid: Grid) => { return { x: Math.max(p.x, grid.x + grid.w), y: p.y } },
-    bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y + grid.h) } }
+    left: (p: Point, grid: Grid) => { return { x: Math.min(p.x, grid.x - 1), y: p.y } },
+    top: (p: Point, grid: Grid) => { return { x: p.x, y: Math.min(p.y, grid.y - 1) } },
+    right: (p: Point, grid: Grid) => { return { x: Math.max(p.x, grid.x + grid.w + 1), y: p.y } },
+    bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y + grid.h + 1) } }
 }
 
 const _evenodd = (grid: Grid, camp: PathCamp, p: Point, p0: Point, side: 'left' | 'top' | 'right' | 'bottom', color: number): number => {
@@ -43,8 +43,7 @@ const _evenodd = (grid: Grid, camp: PathCamp, p: Point, p0: Point, side: 'left' 
 
     const ray = new Line(p, rayend[side](p, grid))
 
-    grid.data.filter(d => d.camp === camp).forEach(d => {
-        if (d.color === color) return;
+    grid.data.filter(d => d.camp === camp && d.color !== color).forEach(d => {
         d.color = color;
 
         let s = d.seg;
@@ -326,6 +325,17 @@ export class Grid implements Rect {
                 }
                 const idx = i * this.col_count + row_start;
                 this.items.splice(idx, 0, ...n)
+            }
+        }
+    }
+
+    forEach(f: (item: Grid, rowIdx: number, colIdx: number) => void) {
+        if (!this.items) return;
+        for (let i = 0; i < this.row_count; ++i) {
+            for (let j = 0; j < this.col_count; ++j) {
+                const idx = i * this.col_count + j;
+                const item = this.items[idx];
+                f(item, i, j);
             }
         }
     }
