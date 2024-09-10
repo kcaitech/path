@@ -1,6 +1,6 @@
 import { Grid, SegmentNode } from "./grid";
 import { Line } from "./line";
-import { float_eq, OpType, PathCamp, Point, Rect, Segment } from "./basic";
+import { contains_range, float_eq, OpType, PathCamp, Point, Rect, Segment, splits } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 import { objectId } from "./objectid";
 
@@ -194,24 +194,102 @@ export class Path {
             if (subjectNodes.size > 0) intersects.push({ clipNode: n, subjectNodes })
         })
 
+
+        const splitenode = (node: SegmentNode, ts: number[]) => {
+            // ts = ts.filter((t) => !(float_eq(0, t) && float_eq(1, t))).sort((a, b) => a - b)
+            if (ts.length === 0) return;
+            if (!node.childs) {
+                const childs = splits(node.seg, ts);
+                ts = ts.slice(0);
+                ts.push(1);
+                if (childs.length !== ts.length) throw new Error();
+                node.childs = []
+                let pt = 0
+                ts.forEach((t, i) => {
+                    const n = {
+                        t0: pt, t1: t, camp: node.camp, seg: childs[i]
+                    }
+                    node.childs!.push(n)
+                    pt = t
+                })
+                return;
+            }
+
+            const curt: number[] = []
+            node.childs.forEach(c => {
+                curt.push(c.t0, c.t1)
+            })
+
+            ts = ts.filter((t) => curt.indexOf(t) < 0)
+            if (ts.length === 0) return;
+
+            for (let i = 0, len = node.childs.length; i < len && ts.length > 0; ++i) {
+                const t = ts[0];
+                const c = node.childs[i];
+                if (t > c.t0 && t < c.t1) {
+                    ts.unshift()
+                    const sp = c.seg.split((t - c.t0) / (c.t1 - c.t0))
+                    node.childs.splice(i, 1, { t0: c.t0, t1: t, camp: c.camp, seg: sp[0] }, { t0: t, t1: c.t1, camp: c.camp, seg: sp[1] })
+                    len = node.childs.length;
+                }
+            }
+        }
+
+        const markstate = (node: SegmentNode, t0: number, t1: number, state: 'coincident' | 'removed') => {
+            const ret: SegmentNode[] = []
+            // if (ts.length === 0) {
+            //     node[state] = true;
+            //     ret.push(node)
+            //     return ret;
+            // }
+            if (!node.childs) throw new Error()
+
+            if (t0 < t1) {
+                const t = t0;
+                t0 = t1;
+                t1 = t;
+            }
+
+            node.childs.forEach(c => {
+                if (contains_range(t0, t1, c.t0, c.t1)) {
+                    c[state] = true;
+                    ret.push(c)
+                }
+            })
+            return ret;
+        }
+
+        const coincidents: SegmentNode[] = []
+
         // 断开重合点、相交点
         for (let i = 0, len = intersects.length; i < len; ++i) {
             const intersect = intersects[i];
-            const clip = intersect.clipNode.seg;
+            const clipNode = intersect.clipNode;
+            const clip = clipNode.seg;
 
             for (let [k, v] of intersect.subjectNodes) {
                 const subject = v.seg;
                 const coincident = clip.coincident(subject);
                 if (coincident) {
+                    const { t0, t1, t2, t3 } = coincident;
+                    const clipsplit = [t0, t1].filter((t) => !(float_eq(0, t) && float_eq(1, t))).sort((a, b) => a - b)
+                    const subjectsplit = [t2, t3].filter((t) => !(float_eq(0, t) && float_eq(1, t))).sort((a, b) => a - b)
+                    splitenode(clipNode, clipsplit);
+                    splitenode(v, subjectsplit);
 
-                    // todo 重合
+                    coincidents.push(...markstate(clipNode, t0, t1, "coincident"))
+                    coincidents.push(...markstate(v, t2, t3, "coincident"))
                     continue;
                 }
 
-                const intersect = clip.intersect(subject, true);
+                const intersect = clip.intersect(subject, true) as { type: "intersect", t0: number, t1: number }[];
 
                 if (intersect.length > 0) {
-                    // todo 相交
+
+                    intersect.forEach(v1 => {
+                        splitenode(clipNode, [v1.t0])
+                        splitenode(v, [v1.t1])
+                    })
 
                     continue;
                 }

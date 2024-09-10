@@ -66,6 +66,7 @@ export type Segment = {
     coincident(seg: Segment): { type: "coincident", t0: number, t1: number, t2: number, t3: number } | undefined
     locate(p: Point): number[];
     split(t: number): Segment[];
+    // splits(ts: number[]): Segment[];
     // clip(rect: Rect): { seg: Segment, t0: number, t1: number }[];
     intersect2(rect: Rect): boolean;
 
@@ -181,4 +182,23 @@ export function isLine(points: Point[]) {
     const aligned = align(points, { p1: points[0], p2: points[order] });
     const baselength = dist(points[0], points[order]);
     return aligned.reduce((t, p) => t + Math.abs(p.y), 0) < Math.max(float_accuracy, baselength / 1000); // 压扁了的
+}
+
+export function splits<T extends Segment>(_this: T, ts: number[]): T[] {
+    const ret = []
+    // ts需要由小到大
+    ts = ts.splice(0).sort((a, b) => a - b)
+    let curve: T = _this
+    for (let i = 0, len = ts.length; i < len; ++i) {
+        const t = ts[i];
+        if (float_eq(t, 1)) break;
+        const sp = curve.split(t) as T[];
+        curve = sp[sp.length - 1];
+        ret.push(...sp.slice(0, sp.length - 1))
+        for (let j = i + 1; j < len; ++j) ts[j] = (ts[j] - t) / (1 - t);
+    }
+    if (curve !== _this) {
+        ret.push(curve)
+    }
+    return ret;
 }

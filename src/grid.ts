@@ -3,8 +3,8 @@ import { objectId } from "./objectid"
 
 export interface SegmentNode {
     seg: Segment,
-    // t0: number,
-    // t1: number,
+    t0: number,
+    t1: number,
     parent?: SegmentNode,
     childs?: SegmentNode[], // 被分割的子路径
     camp: PathCamp,
@@ -126,7 +126,9 @@ export class Grid implements Rect {
                 // childs: [],
                 camp: camp ?? PathCamp.Subject,
                 // grid: this
-                color: 0
+                color: 0,
+                t0: 0,
+                t1: 1
             }
             this.add(node);
             return node;

@@ -1,5 +1,5 @@
 import { Line } from "./line";
-import { alignX, float_accuracy, float_eq, intersect_rect, isLine, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation } from "./basic"
+import { alignX, float_accuracy, float_eq, intersect_rect, isLine, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation, splits } from "./basic"
 
 const ZERO = { x: 0, y: 0 };
 
@@ -122,25 +122,6 @@ abstract class Bezier implements Segment {
 
     abstract split(t: number): Bezier[];
 
-    splits(ts: number[]): Bezier[] {
-        const ret = []
-        // ts需要由小到大
-        ts = ts.splice(0).sort((a, b) => a - b)
-        let curve: Bezier = this
-        for (let i = 0, len = ts.length; i < len; ++i) {
-            const t = ts[i];
-            if (float_eq(t, 1)) break;
-            const sp = curve.split(t);
-            curve = sp[sp.length - 1];
-            ret.push(...sp.slice(0, sp.length - 1))
-            for (let j = i + 1; j < len; ++j) ts[j] = (ts[j] - t) / (1 - t);
-        }
-        if (curve !== this) {
-            ret.push(curve)
-        }
-        return ret;
-    }
-
     abstract intersect(seg: Segment): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] // 相交、不相交、重合
 
     // 预先split的curve,用于intersect判断 // 
@@ -152,7 +133,7 @@ abstract class Bezier implements Segment {
 
         const extrema = this.extrema().filter(t => !float_eq(t, 0) && !float_eq(t, 1));
         if (extrema.length > 0) {
-            const curves = this.splits(extrema);
+            const curves = splits(this, extrema);
             curves.forEach(c => c._extrema = []); // 不再需要计算极值
             extrema.push(1);
             if (extrema.length !== curves.length) throw new Error();
@@ -383,14 +364,14 @@ function binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number 
     let t2: number[]
 
     if (extrema1.length > 0) {
-        c1 = curve1.splits(extrema1)
+        c1 = splits(curve1, extrema1)
         t1 = [0, ...extrema1, 1]
     } else {
         c1 = [curve1]
         t1 = [0, 1]
     }
     if (extrema2.length > 0) {
-        c2 = curve2.splits(extrema2)
+        c2 = splits(curve2, extrema2)
         t2 = [0, ...extrema2, 1]
     } else {
         c2 = [curve2]
