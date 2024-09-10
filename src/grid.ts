@@ -1,4 +1,5 @@
-import { PathCamp, Point, Rect, rect_contains_point, Segment } from "./basic"
+import { float_eq, PathCamp, Point, Rect, rect_contains_point, Segment } from "./basic"
+import { Line } from "./line"
 import { objectId } from "./objectid"
 
 export interface SegmentNode {
@@ -21,6 +22,13 @@ const clampsidep = {
     bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y) } }
 }
 
+const rayend = {
+    left: (p: Point, grid: Grid) => { return { x: Math.min(p.x, grid.x), y: p.y } },
+    top: (p: Point, grid: Grid) => { return { x: p.x, y: Math.min(p.y, grid.y) } },
+    right: (p: Point, grid: Grid) => { return { x: Math.max(p.x, grid.x + grid.w), y: p.y } },
+    bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y + grid.h) } }
+}
+
 const _evenodd = (grid: Grid, camp: PathCamp, p: Point, p0: Point, side: 'left' | 'top' | 'right' | 'bottom', color: number): number => {
     let count = 0;
     if (grid.items) {
@@ -33,31 +41,25 @@ const _evenodd = (grid: Grid, camp: PathCamp, p: Point, p0: Point, side: 'left' 
         return count;
     }
 
+    const ray = new Line(p, rayend[side](p, grid))
+
     grid.data.filter(d => d.camp === camp).forEach(d => {
         if (d.color === color) return;
         d.color = color;
-        // todo
 
-        const s = d.seg;
-        if (!rect_contains_point(s.bbox(), p0)) { // 不包含点时，只要判断下segment的起点跟终点是否与射线相交
+        let s = d.seg;
+        if (s.type !== 'L' && !rect_contains_point(s.bbox(), p0)) { // 不包含点时，只要判断下segment的起点跟终点是否与射线相交
             const p1 = s.from;
             const p2 = s.to;
-            switch (side) {
-                case 'left':
-                    {
-                        const y1 = Math.min(p1.y, p2.y);
-                        const y2 = Math.max(p1.y, p2.y);
-                        if (y1 <= p0.y && y2 >= p0.y) { // 端点的处理，左闭右开，不包含to
-
-                        }
-                    }
-                case 'top':
-                case 'right':
-                case 'bottom':
-            }
-        } else {
-            // 判断交点
+            s = new Line(p1, p2);
         }
+        const coincident = ray.coincident(s);
+        if (coincident) {
+            // 算一个
+            ++count;
+        }
+        const intersect = ray.intersect(s, false) as { type: "intersect"; t0: number; t1: number; }[];
+        count += intersect.filter(i => !float_eq(i.t1, 1)).length; // 不包含p2
     })
 
     return count;

@@ -51,13 +51,6 @@ export function rect_contains_point(lhs: Rect, rhs: Point): boolean {
 export enum PathCamp { Subject, Clip }
 
 export type Segment = {
-    // origin?: {
-    //     segment: Segment,
-    //     t0: number,
-    //     t1: number
-    // },
-    // color?: number;
-    // camp?: PathCamp
 
     get type(): 'L' | 'Q' | 'C'
 
@@ -66,8 +59,7 @@ export type Segment = {
     coincident(seg: Segment): { type: "coincident", t0: number, t1: number, t2: number, t3: number } | undefined
     locate(p: Point): number[];
     split(t: number): Segment[];
-    // splits(ts: number[]): Segment[];
-    // clip(rect: Rect): { seg: Segment, t0: number, t1: number }[];
+
     intersect2(rect: Rect): boolean;
 
     pointAt(t: number): Point;
