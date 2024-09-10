@@ -1,5 +1,5 @@
-import { float_accuracy } from "./basic";
-import { Bezier2 } from "./bezier3";
+import { float_accuracy } from "../src/basic";
+import { Bezier2 } from "../src/bezier3";
 
 describe(`bezier2`, () => {
     test('extream', () => {

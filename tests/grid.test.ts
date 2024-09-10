@@ -1,4 +1,4 @@
-import { Grid } from "./grid";
+import { Grid } from "../src/grid";
 
 
 function check_items(grid: Grid) {
