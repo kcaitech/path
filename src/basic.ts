@@ -9,6 +9,10 @@ export type Point = {
     y: number;
 }
 
+export function point_eq(a: Point, b: Point) {
+    return float_eq(a.x, b.x) && float_eq(a.y, b.y)
+}
+
 export type Line = {
     p1: Point,
     p2: Point

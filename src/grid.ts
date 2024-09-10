@@ -156,9 +156,9 @@ export class Grid implements Rect {
 
     color: number = 0
 
-    evenodd(p: Point, camp: PathCamp) {
+    evenodd(p: Point, camp: PathCamp, side?: 'left' | 'top' | 'right' | 'bottom') {
 
-        const side: 'left' | 'top' | 'right' | 'bottom' = ([
+        side = side || ([
             { side: 'left' as 'left', d: p.x - this.x },
             { side: 'top' as 'top', d: p.y - this.y },
             { side: 'right' as 'right', d: this.x + this.w - p.x },

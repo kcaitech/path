@@ -1,6 +1,6 @@
 import { Grid, SegmentNode } from "./grid";
 import { Line } from "./line";
-import { contains_range, float_eq, OpType, PathCamp, Point, Rect, rect_contains_point, Segment, splits } from "./basic";
+import { contains_range, float_accuracy, float_eq, OpType, PathCamp, Point, point_eq, Rect, rect_contains_point, Segment, splits } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 import { objectId } from "./objectid";
 
@@ -375,9 +375,121 @@ export class Path {
                 break;
         }
 
+        // todo 处理重合路径
+        // 7. 共线处理</br>
+        // difference: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如同时在或者同时不在Subject和Clip中，则标记删除</br>
+        // union: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
+        // intersection: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
+        // *同时在或者同时不在，是指填充重合的区域的边，反之则是不重合的边。即difference重合部分要去除，union和intersection重合部分要保留</br>
+
         // 根据op重建路径
+        // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
+        // difference: 遍历完所有未删除的Subject</br>
+        // union: 遍历完所有未删除的Subject和Clip</br>
+        // intersection: 遍历完所有未删除的Subject或者Clip</br>
         // todo
         // 使用现成的grid还是新map
+
+        const brokensegments: Map<number, Map<number, Segment[][]>> = new Map();
+        const closedsegments: Segment[][] = [];
+        let cursegments: Segment[] = []
+
+        const addbrokensegments = (p: Point, segments: Segment[]) => {
+            const px = Math.round(p.x / float_accuracy);
+            const py = Math.round(p.y / float_accuracy);
+            let x = brokensegments.get(px)
+            if (!x) {
+                x = new Map<number, Segment[][]>()
+                brokensegments.set(px, x)
+            }
+            let y = x.get(py);
+            if (!y) {
+                y = [];
+                x.set(py, y);
+            }
+            y.push(segments);
+        }
+
+        const isclosed = (cursegments: Segment[]) => {
+            if (cursegments.length === 0) return false;
+            if (cursegments.length === 1 && cursegments[0].type !== 'L') {
+                // 自己闭合
+                const s0 = cursegments[0];
+                if (point_eq(s0.from, s0.to)) return true;
+                return false;
+            }
+            const s0 = cursegments[0];
+            const s1 = cursegments[cursegments.length - 1];
+            if (point_eq(s0.from, s1.to)) return true;
+            return false;
+        }
+
+        const rebuild1 = (nodes: SegmentNode[]) => {
+            for (let i = 0, len = nodes.length; i < len; ++i) {
+                const n = nodes[i];
+                if (n.childs) {
+                    rebuild1(n.childs)
+                    continue;
+                }
+                if (!n.removed) {
+                    continue;
+                }
+                const pre = cursegments[cursegments.length - 1];
+                if (!pre) {
+                    cursegments.push(n.seg)
+                } else if (point_eq(pre.to, n.seg.from)) {
+                    cursegments.push(n.seg)
+                } else {
+                    if (isclosed(cursegments)) {
+                        closedsegments.push(cursegments)
+                        cursegments = []
+                    } else {
+                        const from = cursegments[0].from;
+                        const to = cursegments[cursegments.length - 1].to;
+                        addbrokensegments(from, cursegments);
+                        addbrokensegments(to, cursegments);
+                        cursegments = [];
+                    }
+                    cursegments.push(n.seg)
+                }
+                if (isclosed(cursegments)) {
+                    closedsegments.push(cursegments)
+                    cursegments = []
+                }
+            }
+        }
+
+        rebuild1(subjectNodes);
+        if (cursegments.length === 0) {
+            // none
+        } else if (isclosed(cursegments)) {
+            closedsegments.push(cursegments)
+            cursegments = []
+        } else {
+            const from = cursegments[0].from;
+            const to = cursegments[cursegments.length - 1].to;
+            addbrokensegments(from, cursegments);
+            addbrokensegments(to, cursegments);
+            cursegments = [];
+        }
+
+        // join brokensegments
+        const joinedsegments: Segment[][][] = [];
+        let curjoin: Segment[][] = [];
+        const usedsegments = new Set<number>();
+        for (let [k, v] of brokensegments) {
+            for (let [k1, v1] of v) {
+                for (let i = 0, len = v1.length; i < len; ++i) {
+                    const segs = v1[i];
+                    if (usedsegments.has(objectId(segs))) continue;
+
+                    if (curjoin.length > 0) throw new Error();
+                    curjoin.push(segs);
+
+                    // todo
+                }
+            }
+        }
 
         let saverm: SegmentNode[] | undefined
         if (type === OpType.Xor) {
