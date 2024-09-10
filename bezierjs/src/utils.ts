@@ -1,7 +1,16 @@
 // import { Bezier } from "./bezier.js";
 
-import { Point, Line } from "./basic";
+// import { Point, Line } from "../../src/basic";
 
+type Point = {
+    x: number;
+    y: number;
+}
+
+type Line = {
+    p1: Point,
+    p2: Point
+}
 // math-inlining.
 const { abs, cos, sin, acos, atan2, sqrt, pow } = Math;
 

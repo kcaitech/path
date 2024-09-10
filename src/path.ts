@@ -304,6 +304,26 @@ export class Path {
         // evenodd
         const evenodd = (seg: SegmentNode, camp: PathCamp): boolean => {
             let count = false;
+            const p = seg.seg.pointAt(0.5);
+
+            const side: 'l' | 't' | 'r' | 'b' = ([
+                { side: 'l' as 'l', d: p.x - _grid.x },
+                { side: 't' as 't', d: p.y - _grid.y },
+                { side: 'r' as 'r', d: _grid.x + _grid.w - p.x },
+            ] as { side: 'l' | 't' | 'r' | 'b', d: number }[]).reduce((p, c) => {
+                return (c.d < p.d) ? c : p;
+            }, { side: 'b' as 'b', d: _grid.y + _grid.h - p.y }).side;
+
+            switch (side) {
+                case 'l': {
+
+                    break;
+                }
+                case 't':
+                case 'r':
+                case 'b':
+            }
+
             // todo
             // for (let [k, v] of nodes) {
             //     const s = v.seg;
@@ -322,6 +342,7 @@ export class Path {
         const removed: SegmentNode[] = []; // xor需要重复使用
 
         const rminside = (s: SegmentNode, camp: PathCamp) => {
+            if (s.coincident) return; // 共线另外处理
             if (evenodd(s, camp)) {
                 s.removed = true;
                 removed.push(s)
@@ -329,6 +350,7 @@ export class Path {
         }
 
         const rmoutside = (s: SegmentNode, camp: PathCamp) => {
+            if (s.coincident) return; // 共线另外处理
             if (!evenodd(s, camp)) {
                 s.removed = true;
                 removed.push(s)
@@ -416,18 +438,23 @@ export class PathBuilder {
     _paths: Path1[] = []
 
     moveTo(x: number, y: number) {
-
+        if (this._paths.length === 0 || this._paths[this._paths.length - 1].cmds.length > 0) {
+            const np = new Path1();
+            np.start.x = x;
+            np.start.y = y;
+            this._paths.push(np)
+        }
     }
     lineTo(x: number, y: number) {
 
     }
     quadTo(x: number, y: number, x1: number, y1: number) {
-
     }
     cubicTo(x: number, y: number, x1: number, y1: number, x2: number, y2: number) {
-
     }
     close() {
+        if (this._paths.length === 0) return;
+
 
     }
 

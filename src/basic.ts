@@ -70,6 +70,7 @@ export type Segment = {
     // clip(rect: Rect): { seg: Segment, t0: number, t1: number }[];
     intersect2(rect: Rect): boolean;
 
+    pointAt(t: number): Point;
 
     get from(): Point;
     get to(): Point;

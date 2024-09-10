@@ -6,7 +6,11 @@
   This code is MIT licensed.
 **/
 
-import { Point } from "./basic";
+// import { Point } from "../../src/basic";
+type Point = {
+    x: number;
+    y: number;
+}
 import { BBox, BBoxAxis, PointT, utils } from "./utils";
 
 // math-inlining.
@@ -506,7 +510,7 @@ export class Bezier {
         // }
         // we lerp between all points at each iteration, until we have 1 point left.
         while (p.length > 1) {
-            const _p = [];
+            const _p: Point[] = [];
             for (let i = 0, l = p.length - 1; i < l; i++) {
                 const pt = utils.lerp(t, p[i], p[i + 1]);
                 q[idx++] = pt;
