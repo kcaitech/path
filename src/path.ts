@@ -477,16 +477,24 @@ export class Path {
         const joinedsegments: Segment[][][] = [];
         let curjoin: Segment[][] = [];
         const usedsegments = new Set<number>();
+
+        const joinsegs = (pre: Segment[]) => {
+            const from = pre[0].from;
+            const to = pre[cursegments.length - 1].to;
+            // todo
+
+
+        }
+
         for (let [k, v] of brokensegments) {
             for (let [k1, v1] of v) {
                 for (let i = 0, len = v1.length; i < len; ++i) {
                     const segs = v1[i];
                     if (usedsegments.has(objectId(segs))) continue;
-
+                    usedsegments.add(objectId(segs))
                     if (curjoin.length > 0) throw new Error();
                     curjoin.push(segs);
-
-                    // todo
+                    joinsegs(segs)
                 }
             }
         }
