@@ -1,6 +1,6 @@
 import { Grid, SegmentNode } from "./grid";
 import { Line } from "./line";
-import { contains_range, float_eq, OpType, PathCamp, Point, Rect, Segment, splits } from "./basic";
+import { contains_range, float_eq, OpType, PathCamp, Point, Rect, rect_contains_point, Segment, splits } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 import { objectId } from "./objectid";
 
@@ -89,6 +89,7 @@ const grid_need_split = 16;
 
 export class Path {
 
+    // color = 0
     _paths: Path1[] = []
 
     _bbox?: Rect & { x2: number, y2: number }
@@ -296,42 +297,12 @@ export class Path {
             }
         }
 
-        // const rayTop = (x: number, y: number, camp: PathCamp): Map<number, SegmentNode> => {
-        //     const subjectNodes: Map<number, SegmentNode> = new Map();
-        //     // todo 
-        //     return subjectNodes;
-        // }
         // evenodd
+        // even true, odd false
         const evenodd = (seg: SegmentNode, camp: PathCamp): boolean => {
-            let count = false;
             const p = seg.seg.pointAt(0.5);
-
-            const side: 'l' | 't' | 'r' | 'b' = ([
-                { side: 'l' as 'l', d: p.x - _grid.x },
-                { side: 't' as 't', d: p.y - _grid.y },
-                { side: 'r' as 'r', d: _grid.x + _grid.w - p.x },
-            ] as { side: 'l' | 't' | 'r' | 'b', d: number }[]).reduce((p, c) => {
-                return (c.d < p.d) ? c : p;
-            }, { side: 'b' as 'b', d: _grid.y + _grid.h - p.y }).side;
-
-            switch (side) {
-                case 'l': {
-
-                    break;
-                }
-                case 't':
-                case 'r':
-                case 'b':
-            }
-
-            // todo
-            // for (let [k, v] of nodes) {
-            //     const s = v.seg;
-            //     if (!rect_contains_point(s.bbox(), )) // 不包含点时，只要判断下segment的起点跟终点是否与射线相交
-            // }
-            return count
+            return _grid.evenodd(p, camp);
         }
-
 
         // 根据op标记removed segment
         // a. difference: Subject的线段在Clip内标记删除，Clip的线段在Subject外标记删除

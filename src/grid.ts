@@ -1,4 +1,4 @@
-import { PathCamp, Rect, Segment } from "./basic"
+import { PathCamp, Point, Rect, rect_contains_point, Segment } from "./basic"
 import { objectId } from "./objectid"
 
 export interface SegmentNode {
@@ -12,6 +12,55 @@ export interface SegmentNode {
     color?: number
     removed?: boolean
     coincident?: boolean // 不同camp重合的
+}
+
+const clampsidep = {
+    left: (p: Point, grid: Grid) => { return { x: Math.min(p.x, grid.x + grid.w), y: p.y } },
+    top: (p: Point, grid: Grid) => { return { x: p.x, y: Math.min(p.y, grid.y + grid.h) } },
+    right: (p: Point, grid: Grid) => { return { x: Math.max(p.x, grid.x), y: p.y } },
+    bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y) } }
+}
+
+const _evenodd = (grid: Grid, camp: PathCamp, p: Point, p0: Point, side: 'left' | 'top' | 'right' | 'bottom', color: number): number => {
+    let count = 0;
+    if (grid.items) {
+        const iter = grid.iterFrom(p);
+        while (iter.item) {
+            const _p = clampsidep[side](p, iter.item);
+            count += _evenodd(iter.item, camp, _p, p0, side, color);
+            iter[side]();
+        }
+        return count;
+    }
+
+    grid.data.filter(d => d.camp === camp).forEach(d => {
+        if (d.color === color) return;
+        d.color = color;
+        // todo
+
+        const s = d.seg;
+        if (!rect_contains_point(s.bbox(), p0)) { // 不包含点时，只要判断下segment的起点跟终点是否与射线相交
+            const p1 = s.from;
+            const p2 = s.to;
+            switch (side) {
+                case 'left':
+                    {
+                        const y1 = Math.min(p1.y, p2.y);
+                        const y2 = Math.max(p1.y, p2.y);
+                        if (y1 <= p0.y && y2 >= p0.y) { // 端点的处理，左闭右开？
+
+                        }
+                    }
+                case 'top':
+                case 'right':
+                case 'bottom':
+            }
+        } else {
+            // 判断交点
+        }
+    })
+
+    return count;
 }
 
 export class Grid implements Rect {
@@ -55,6 +104,70 @@ export class Grid implements Rect {
                 this.items.push(new Grid(x, y, this.col_w, this.row_h, this.level + 1));
             }
         }
+    }
+
+    iterFrom(p: Point) {
+        let ci = Math.max(0, Math.floor((p.x - this.x) / this.col_w));
+        let ri = Math.max(0, Math.floor((p.y - this.y) / this.row_h));
+        let grid = this;
+        let idx = ri * this.col_count + ci;
+        const items = this.items || [];
+        return {
+            item: items[idx],
+            hasLeft() {
+                return items.length > 0 && ci > 0
+            },
+            left() {
+                --ci;
+                idx = ri * grid.col_count + ci;
+                this.item = items[idx]
+                return this.item;
+            },
+            hasTop() {
+                return items.length > 0 && ri > 0
+            },
+            top() {
+                --ri;
+                idx = ri * grid.col_count + ci;
+                this.item = items[idx]
+                return this.item;
+            },
+            hasRight() {
+                return items.length > 0 && ci < grid.col_count;
+            },
+            right() {
+                ++ci;
+                idx = ri * grid.col_count + ci;
+                this.item = items[idx]
+                return this.item;
+            },
+            hasBottom() {
+                return items.length > 0 && ri < grid.row_count;
+            },
+            bottom() {
+                ++ri;
+                idx = ri * grid.col_count + ci;
+                this.item = items[idx]
+                return this.item;
+            }
+        }
+    }
+
+    color: number = 0
+
+    evenodd(p: Point, camp: PathCamp) {
+
+        const side: 'left' | 'top' | 'right' | 'bottom' = ([
+            { side: 'left' as 'left', d: p.x - this.x },
+            { side: 'top' as 'top', d: p.y - this.y },
+            { side: 'right' as 'right', d: this.x + this.w - p.x },
+        ] as { side: 'left' | 'top' | 'right' | 'bottom', d: number }[]).reduce((p, c) => {
+            return (c.d < p.d) ? c : p;
+        }, { side: 'bottom' as 'bottom', d: this.y + this.h - p.y }).side;
+
+        const count = _evenodd(this, camp, p, p, side, ++this.color)
+
+        return count % 2 === 1
     }
 
     private _add2item(data: SegmentNode) {
@@ -125,7 +238,7 @@ export class Grid implements Rect {
                 seg: d,
                 // childs: [],
                 camp: camp ?? PathCamp.Subject,
-                // grid: this
+                // grid: this,
                 color: 0,
                 t0: 0,
                 t1: 1
