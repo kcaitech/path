@@ -1,4 +1,4 @@
-import { contains_point, contains_rect, float_accuracy, intersect_range, intersect_rect, Point, Rect, Segment } from "./basic";
+import { contains_point, contains_rect, float_accuracy, intersect_range, intersect_rect, PathCmd, Point, Rect, Segment } from "./basic";
 
 export class Line implements Segment {
     p1: Point
@@ -20,7 +20,10 @@ export class Line implements Segment {
 
         const dx = this.p2.x - this.p1.x;
         const dy = this.p2.y - this.p1.y;
-        if (dx === 0 && dy === 0) throw new Error("line: invalid line");
+        if (dx === 0 && dy === 0) {
+            console.log(new Error().stack)
+            throw new Error("line: invalid line");
+        }
     }
 
     get from() {
@@ -101,8 +104,8 @@ export class Line implements Segment {
     coincident(seg: Segment): { type: "coincident"; t0: number; t1: number; t2: number; t3: number; } | undefined {
         if (seg.type !== 'L') {
             const ret = seg.coincident(this);
-            if (ret) { 
-                return {type: 'coincident', t0: ret.t2, t1: ret.t3, t2: ret.t0, t3: ret.t1}
+            if (ret) {
+                return { type: 'coincident', t0: ret.t2, t1: ret.t3, t2: ret.t0, t3: ret.t1 }
             }
             return;
         }
@@ -216,5 +219,13 @@ export class Line implements Segment {
         if (t0 >= 0 && t0 <= 1 && t1 >= 0 && t1 <= 1) return [{ type: "intersect", t0, t1 }]
 
         return []
+    }
+
+    reverse() {
+        return new Line(this.p2, this.p1)
+    }
+
+    toCmd(): PathCmd {
+        return { type: 'L', x: this.p2.x, y: this.p2.y }
     }
 }

@@ -1,13 +1,10 @@
 import { Grid, SegmentNode } from "./grid";
 import { Line } from "./line";
-import { contains_range, float_accuracy, float_eq, OpType, PathCamp, Point, point_eq, Rect, rect_contains_point, Segment, splits } from "./basic";
+import { contains_range, float_accuracy, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, Rect, rect_contains_point, Segment, splits } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 import { objectId } from "./objectid";
 
-type PathCmd =
-    { type: "L", x: number, y: number } |
-    { type: "Q", x: number, y: number, x1: number, y1: number } |
-    { type: "C", x: number, y: number, x1: number, y1: number, x2: number, y2: number }
+
 
 function reduice_bbox(arr: { bbox(): Rect & { x2: number, y2: number } }[]): Rect & { x2: number, y2: number } {
     if (arr.length === 0) {
@@ -382,13 +379,12 @@ export class Path {
         // intersection: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
         // *同时在或者同时不在，是指填充重合的区域的边，反之则是不重合的边。即difference重合部分要去除，union和intersection重合部分要保留</br>
 
+        // todo
         // 根据op重建路径
         // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
         // difference: 遍历完所有未删除的Subject</br>
         // union: 遍历完所有未删除的Subject和Clip</br>
         // intersection: 遍历完所有未删除的Subject或者Clip</br>
-        // todo
-        // 使用现成的grid还是新map
 
         const brokensegments: Map<number, Map<number, Segment[][]>> = new Map();
         const closedsegments: Segment[][] = [];
@@ -478,13 +474,60 @@ export class Path {
         let curjoin: Segment[] = [];
         const usedsegments = new Set<number>();
 
+        const reverse = (segs: Segment[]) => {
+            // todo 记录被reverse的seg，修复grid
+            return segs.reverse().map(s => s.reverse()) // 原有的seg被替換，grid還能用不？
+        }
+
+        const joinsegs1 = (to: Point) => {
+            const x = brokensegments.get(Math.round(to.x / float_accuracy))
+            if (!x) return false;
+
+            const y = x.get(Math.round(to.y / float_accuracy))
+            if (!y || y.length === 0) return false;
+
+            const pending = y.filter(s => !usedsegments.has(objectId(s)))
+
+            if (pending.length === 0) return false;
+
+            if (pending.length === 1) {
+                const seg = pending[0];
+                usedsegments.add(objectId(seg))
+                if (point_eq(to, seg[0].from)) {
+                    curjoin.push(...seg)
+                } else {
+                    curjoin.push(...reverse(seg))
+                }
+                // joined = true;
+                return true;
+            }
+
+            if (pending.length > 1) {
+                // todo
+                // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
+            }
+
+
+            return false;
+        }
+
         const joinsegs = (pre: Segment[]) => {
-            const from = pre[0].from;
-            const to = pre[cursegments.length - 1].to;
-            // todo
 
+            for (; ;) {
 
-            if (isclosed(curjoin)) return;
+                if (isclosed(curjoin)) break;
+
+                const from = pre[0].from;
+                const to = pre[pre.length - 1].to;
+                // let joined = false;
+
+                if (joinsegs1(to)) continue;
+
+                if (joinsegs1(from)) continue;
+
+                break;
+
+            }
         }
 
         for (let [k, v] of brokensegments) {
@@ -508,6 +551,30 @@ export class Path {
             }
         }
 
+        // 生成路徑
+        // 生成新_paths
+
+        this._bbox = undefined;
+        this._paths.length = 0;
+        for (let i = 0, len = closedsegments.length; i < len; ++i) {
+            const segs = closedsegments[i];
+            const from = segs[0].from;
+            const path = new Path1();
+            path.start.x = from.x;
+            path.start.y = from.y;
+            path.isClose = true;
+            path._segments = []
+            for (let j = 0, len = segs.length; j < len; ++j) {
+                const s = segs[i];
+                if (j === len - 1 && s.type === 'L') break;
+                path._segments.push(s);
+                path.cmds.push(s.toCmd())
+            }
+            this._paths.push(path)
+        }
+
+        // console.log(joinedsegments, closedsegments)
+
         let saverm: SegmentNode[] | undefined
         if (type === OpType.Xor) {
             // todo
@@ -521,15 +588,30 @@ export class Path {
         }
 
         // 整理grid，以备后续使用
+        // todo 修复grid,_subjectNodes,_clipNodes
 
     }
 
     clone() {
-
+        const path = new Path()
+        path._paths = this._paths;
+        return path;
     }
 
     toSVGString() {
-
+        let ret = ''
+        this._paths.forEach(p => {
+            ret += `M${p.start.x} ${p.start.y}`
+            p.cmds.forEach(c => {
+                switch (c.type) {
+                    case 'C': ret += `C${c.x1} ${c.y1} ${c.x2} ${c.y2} ${c.x} ${c.y}`; break;
+                    case 'L': ret += `L${c.x} ${c.y}`; break;
+                    case 'Q': ret += `Q${c.x1} ${c.y1} ${c.x} ${c.y}`; break;
+                }
+            })
+            if (p.isClose) ret += 'Z'
+        })
+        return ret;
     }
 
 }
@@ -537,25 +619,48 @@ export class Path {
 export class PathBuilder {
     _paths: Path1[] = []
 
+    private _newp(x: number, y: number) {
+        const np = new Path1();
+        np.start.x = x;
+        np.start.y = y;
+        this._paths.push(np)
+        return np;
+    }
+
     moveTo(x: number, y: number) {
         if (this._paths.length === 0 || this._paths[this._paths.length - 1].cmds.length > 0) {
-            const np = new Path1();
-            np.start.x = x;
-            np.start.y = y;
-            this._paths.push(np)
+            this._newp(x, y)
         }
     }
     lineTo(x: number, y: number) {
-
+        if (this._paths.length === 0) throw new Error();
+        let last = this._paths[this._paths.length - 1];
+        if (last.isClose) {
+            last = this._newp(last.start.x, last.start.y)
+        }
+        last.cmds.push({ type: 'L', x, y })
     }
     quadTo(x: number, y: number, x1: number, y1: number) {
+        if (this._paths.length === 0) throw new Error();
+        let last = this._paths[this._paths.length - 1];
+        if (last.isClose) {
+            last = this._newp(last.start.x, last.start.y)
+        }
+        last.cmds.push({ type: 'Q', x, y, x1, y1 })
     }
     cubicTo(x: number, y: number, x1: number, y1: number, x2: number, y2: number) {
+        if (this._paths.length === 0) throw new Error();
+        let last = this._paths[this._paths.length - 1];
+        if (last.isClose) {
+            last = this._newp(last.start.x, last.start.y)
+        }
+        last.cmds.push({ type: 'C', x, y, x1, y1, x2, y2 })
     }
     close() {
         if (this._paths.length === 0) return;
 
-
+        const last = this._paths[this._paths.length - 1];
+        last.isClose = true;
     }
 
     getPath() {

@@ -1,5 +1,5 @@
 import { Line } from "./line";
-import { alignX, float_accuracy, float_eq, intersect_rect, isLine, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation, splits } from "./basic"
+import { alignX, float_accuracy, float_eq, intersect_rect, isLine, PathCmd, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation, splits } from "./basic"
 
 const ZERO = { x: 0, y: 0 };
 
@@ -291,6 +291,10 @@ abstract class Bezier implements Segment {
 
         return [];
     }
+
+    abstract reverse(): Bezier;
+
+    abstract toCmd(): PathCmd;
 }
 
 function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number }[] {
@@ -650,6 +654,19 @@ export class Bezier2 extends Bezier {
             return r;
         }, [] as { type: "intersect"; t0: number; t1: number; }[])
     }
+
+    reverse(): Bezier2 {
+        const p0 = this.points[0];
+        const p1 = this.points[1];
+        const p2 = this.points[2];
+        return new Bezier2(p2, p1, p0, this._extrema?.length === 0 ? [] : undefined)
+    }
+
+    toCmd(): PathCmd {
+        const p1 = this.points[1];
+        const p2 = this.points[2];
+        return { type: 'Q', x: p2.x, y: p2.y, x1: p1.x, y1: p1.y }
+    }
 }
 
 export class Bezier3 extends Bezier {
@@ -845,5 +862,20 @@ export class Bezier3 extends Bezier {
 
     toBezier3(): Point[] {
         return this.points
+    }
+
+    reverse(): Bezier3 {
+        const p0 = this.points[0];
+        const p1 = this.points[1];
+        const p2 = this.points[2];
+        const p3 = this.points[3];
+        return new Bezier3(p3, p2, p1, p0, this._extrema?.length === 0 ? [] : undefined)
+    }
+
+    toCmd(): PathCmd {
+        const p1 = this.points[1];
+        const p2 = this.points[2];
+        const p3 = this.points[3];
+        return { type: 'C', x: p3.x, y: p3.y, x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y }
     }
 }

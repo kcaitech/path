@@ -54,6 +54,11 @@ export function rect_contains_point(lhs: Rect, rhs: Point): boolean {
 
 export enum PathCamp { Subject, Clip }
 
+export type PathCmd =
+    { type: "L", x: number, y: number } |
+    { type: "Q", x: number, y: number, x1: number, y1: number } |
+    { type: "C", x: number, y: number, x1: number, y1: number, x2: number, y2: number }
+
 export type Segment = {
 
     get type(): 'L' | 'Q' | 'C'
@@ -70,6 +75,9 @@ export type Segment = {
 
     get from(): Point;
     get to(): Point;
+
+    reverse(): Segment;
+    toCmd(): PathCmd;
 }
 
 
@@ -184,7 +192,7 @@ export function isLine(points: Point[]) {
 export function splits<T extends Segment>(_this: T, ts: number[]): T[] {
     const ret = []
     // ts需要由小到大
-    ts = ts.splice(0).sort((a, b) => a - b)
+    ts = ts.slice(0).sort((a, b) => a - b)
     let curve: T = _this
     for (let i = 0, len = ts.length; i < len; ++i) {
         const t = ts[i];
