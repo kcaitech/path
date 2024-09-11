@@ -44,7 +44,10 @@ const _evenodd = (grid0: Grid, grid: Grid, camp: PathCamp, p: Point, p0: Point, 
     const rayendp = rayend[side](p, grid0);
     const ray = new Line(p, rayendp)
 
-    grid.data.filter(d => d.camp === camp && d.color !== color).forEach(d => {
+
+    const pending =grid.data.filter(d => d.camp === camp && d.color !== color);
+
+    pending.forEach(d => {
         d.color = color;
 
         let s = d.seg;
@@ -57,8 +60,9 @@ const _evenodd = (grid0: Grid, grid: Grid, camp: PathCamp, p: Point, p0: Point, 
         if (coincident) {
             // 算一个
             ++count;
+            return;
         }
-        const intersect = ray.intersect(s, false) as { type: "intersect"; t0: number; t1: number; }[];
+        const intersect = ray.intersect(s, true) as { type: "intersect"; t0: number; t1: number; }[];
         count += intersect.filter(i => !float_eq(i.t1, 1)).length; // 不包含p2
     })
 

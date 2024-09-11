@@ -512,7 +512,11 @@ export class Path {
 
             if (pending.length > 1) {
                 // todo
+                // 优先相同camp
+                // 其次内外面与当前路径一致
+                // 
                 // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
+                // 或者优先最大面积？
             }
 
 
@@ -580,8 +584,6 @@ export class Path {
             }
             this._paths.push(path)
         }
-
-        // console.log(joinedsegments, closedsegments)
 
         let saverm: SegmentNode[] | undefined
         if (type === OpType.Xor) {

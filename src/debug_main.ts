@@ -6,27 +6,22 @@ import { PathBuilder } from "./pathbuilder";
 // "module": "CommonJS",
 
 // test
-function main() {
-    // console.log("hello")
-    const builder = new PathBuilder();
-    builder.moveTo(0, 0);
-    builder.lineTo(100, 0);
-    builder.lineTo(100, 100);
-    builder.lineTo(0, 100);
-    builder.close();
-    const path = builder.getPath();
+const builder = new PathBuilder();
+builder.moveTo(50, 100)
+builder.cubicTo(100, 50, 77.58923888895069, 100, 100, 77.58923888895069)
+builder.cubicTo(50, 0, 100, 22.4107611110493, 77.58923888895069, 0)
+builder.cubicTo(0, 50, 22.4107611110493, 0, 0, 22.4107611110493)
+builder.cubicTo(50, 100, 0, 77.58923888895069, 22.4107611110493, 100)
+builder.close()
+const path = builder.getPath();
 
-    builder.moveTo(25, 25);
-    builder.lineTo(125, 25);
-    builder.lineTo(125, 125);
-    builder.lineTo(25, 125);
-    builder.close();
+builder.moveTo(50.5, 88)
+builder.cubicTo(88, 50.5, 71.19192916671302, 88, 88, 71.19192916671302)
+builder.cubicTo(50.5, 13, 88, 29.808070833286973, 71.19192916671302, 13)
+builder.cubicTo(13, 50.5, 29.808070833286973, 13, 13, 29.808070833286973)
+builder.cubicTo(50.5, 88, 13, 71.19192916671302, 29.808070833286973, 88)
+builder.close()
+const path1 = builder.getPath();
 
-    const path1 = builder.getPath();
-
-    path.op(path1, OpType.Difference);
-
-    console.log(path.toSVGString())
-}
-
-main()
+path.op(path1, OpType.Difference);
+console.log(path.toSVGString().split('').reduce((c, v) => c + (v === 'Z' ? 1 : 0), 0))

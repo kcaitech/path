@@ -203,7 +203,7 @@ abstract class Bezier implements Segment {
     abstract toBezier3(): Point[];
 
     coincident(_seg: Segment): { type: "coincident"; t0: number; t1: number; t2: number; t3: number; } | undefined {
-
+        if (!intersect_rect(this.bbox(), _seg.bbox())) return;
         if (this.isLine) return new Line(this.points[0], this.points[this.points.length - 1]).coincident(_seg);
         if (_seg.type === 'L') return;
 
@@ -533,7 +533,7 @@ export class Bezier2 extends Bezier {
         if (dy !== 0) ret.push(t('y', dy));
 
         const accept = (t: number, i: number) => {
-            return t >= 0 && t <= 1 && ret.indexOf(t) === i;
+            return !float_eq(t, 0) && !float_eq(t, 1) && t > 0 && t < 1 && ret.indexOf(t) === i;
         }
         this._extrema = ret.filter(accept).sort((a, b) => a - b)
         return this._extrema;
@@ -621,7 +621,7 @@ export class Bezier2 extends Bezier {
     }
 
     intersect(seg: Segment, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
-
+        if (!intersect_rect(this.bbox(), seg.bbox())) return [];
         if (seg.type === 'L') {
             return this._intersectLine(seg as Line);
         }
@@ -722,7 +722,7 @@ export class Bezier3 extends Bezier {
         const ret = [...solveQuadraticEquation(ax, bx, cx), ...solveQuadraticEquation(ay, by, cy)];
 
         const accept = (t: number, i: number) => {
-            return t >= 0 && t <= 1 && ret.indexOf(t) === i;
+            return !float_eq(t, 0) && !float_eq(t, 1) && t > 0 && t < 1 && ret.indexOf(t) === i;
         }
         this._extrema = ret.filter(accept).sort((a, b) => a - b)
         return this._extrema;
@@ -824,6 +824,7 @@ export class Bezier3 extends Bezier {
     }
 
     intersect(seg: Segment, noCoincident?: boolean): ({ type: "coincident", t0: number, t1: number, t2: number, t3: number } | { type: "intersect", t0: number, t1: number })[] {
+        if (!intersect_rect(this.bbox(), seg.bbox())) return [];
         if (seg.type === 'L') {
             return this._intersectLine(seg as Line);
         }
@@ -837,6 +838,7 @@ export class Bezier3 extends Bezier {
             // const extrema = this.extrema();
             return new Line(this.points[0], this.points[this.points.length - 1]).intersect(line);
         }
+        // todo 不对
         const alignpoints = alignX(this.points, line);
         const p0 = alignpoints[0];
         const p1 = alignpoints[1];
