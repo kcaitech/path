@@ -23,7 +23,11 @@ function reduice_bbox(arr: { bbox(): Rect & { x2: number, y2: number } }[]): Rec
             bbox.y2 = Math.max(bbox.y2, b.y2);
         }
     }
-    if (bbox) return bbox;
+    if (bbox) {
+        bbox.w = bbox.x2 - bbox.x;
+        bbox.h = bbox.y2 - bbox.y;
+        return bbox;
+    }
     return { x: 0, y: 0, w: 0, h: 0, x2: 0, y2: 0 }
 }
 
@@ -382,9 +386,9 @@ export class Path {
         // todo
         // 根据op重建路径
         // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
-        // difference: 遍历完所有未删除的Subject</br>
+        // difference: 遍历完所有未删除的Subject和Clip</br>
         // union: 遍历完所有未删除的Subject和Clip</br>
-        // intersection: 遍历完所有未删除的Subject或者Clip</br>
+        // intersection: 遍历完所有未删除的Subject和Clip</br>
 
         const brokensegments: Map<number, Map<number, Segment[][]>> = new Map();
         const closedsegments: Segment[][] = [];
@@ -427,7 +431,7 @@ export class Path {
                     rebuild1(n.childs)
                     continue;
                 }
-                if (!n.removed) {
+                if (n.removed) {
                     continue;
                 }
                 const pre = cursegments[cursegments.length - 1];
@@ -455,19 +459,23 @@ export class Path {
             }
         }
 
-        rebuild1(subjectNodes);
-        if (cursegments.length === 0) {
-            // none
-        } else if (isclosed(cursegments)) {
-            closedsegments.push(cursegments)
-            cursegments = []
-        } else {
-            const from = cursegments[0].from;
-            const to = cursegments[cursegments.length - 1].to;
-            addbrokensegments(from, cursegments);
-            addbrokensegments(to, cursegments);
-            cursegments = [];
+        const rebuild = (nodes: SegmentNode[]) => {
+            rebuild1(nodes);
+            if (cursegments.length === 0) {
+                // none
+            } else if (isclosed(cursegments)) {
+                closedsegments.push(cursegments)
+                cursegments = []
+            } else {
+                const from = cursegments[0].from;
+                const to = cursegments[cursegments.length - 1].to;
+                addbrokensegments(from, cursegments);
+                addbrokensegments(to, cursegments);
+                cursegments = [];
+            }
         }
+        rebuild(subjectNodes)
+        rebuild(clipNodes)
 
         // join brokensegments
         const joinedsegments: Segment[][] = [];
@@ -511,14 +519,14 @@ export class Path {
             return false;
         }
 
-        const joinsegs = (pre: Segment[]) => {
+        const joinsegs = () => {
 
             for (; ;) {
 
                 if (isclosed(curjoin)) break;
 
-                const from = pre[0].from;
-                const to = pre[pre.length - 1].to;
+                const from = curjoin[0].from;
+                const to = curjoin[curjoin.length - 1].to;
                 // let joined = false;
 
                 if (joinsegs1(to)) continue;
@@ -538,7 +546,7 @@ export class Path {
                     usedsegments.add(objectId(segs))
                     if (curjoin.length > 0) throw new Error();
                     curjoin.push(...segs);
-                    joinsegs(segs)
+                    joinsegs()
 
                     if (isclosed(curjoin)) {
                         closedsegments.push(curjoin)
@@ -565,7 +573,7 @@ export class Path {
             path.isClose = true;
             path._segments = []
             for (let j = 0, len = segs.length; j < len; ++j) {
-                const s = segs[i];
+                const s = segs[j];
                 if (j === len - 1 && s.type === 'L') break;
                 path._segments.push(s);
                 path.cmds.push(s.toCmd())

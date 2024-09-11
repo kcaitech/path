@@ -32,6 +32,6 @@ describe(`path`, () => {
 
         path.op(path1, OpType.Difference);
 
-        console.log(path.toSVGString())
+        expect(path.toSVGString()).toBe('M0 0L100 0L100 25L25 25L25 100L0 100Z')
     })
 })
