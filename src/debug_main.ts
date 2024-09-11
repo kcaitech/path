@@ -1,5 +1,5 @@
 import { OpType } from "./basic";
-import { PathBuilder } from "./path";
+import { PathBuilder } from "./pathbuilder";
 
 // vscode debug
 // 需要修改tsconfig.json
