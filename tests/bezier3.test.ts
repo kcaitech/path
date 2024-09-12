@@ -1,5 +1,5 @@
 import { Line } from "../src/line";
-import { float_accuracy, solveCubicEquation } from "../src/basic";
+import { float_accuracy, float_eq, solveCubicEquation } from "../src/basic";
 import { Bezier3 } from "../src/bezier3";
 
 describe(`bezier3`, () => {
@@ -84,6 +84,30 @@ describe(`bezier3`, () => {
         const c1 = new Bezier3(p1[0], p1[1], p1[2], p1[3])
         const c2 = new Line(p2[0], p2[1])
 
-        expect(c1.intersect(c2).length).toBe(1)
+        const intersect = c1.intersect(c2);
+
+        expect(intersect.length).toBe(1)
+        expect(intersect[0].type).toBe('intersect')
+        expect(float_eq(intersect[0].t0, 0.36046984388219033)).toBe(true)
+        expect(float_eq(intersect[0].t1, 0.5211510675840835)).toBe(true)
+    })
+
+    test('intersect 2', () => {
+        const p1 = [
+            { x: 96, y: 81, },
+            { x: 96, y: 72.7232283333148, },
+            { x: 89.2767716666852, y: 66, },
+            { x: 81, y: 66, },
+        ]
+        const p2 = [
+            { x: 50, y: 100, },
+            { x: 77.58923888895069, y: 100, },
+            { x: 100, y: 77.58923888895069, },
+            { x: 100, y: 50, },
+        ]
+        const c1 = new Bezier3(p1[0], p1[1], p1[2], p1[3])
+        const c2 = new Bezier3(p2[0], p2[1], p2[2], p2[3])
+
+        console.log(c1.intersect(c2))
     })
 })

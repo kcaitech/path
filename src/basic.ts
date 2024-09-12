@@ -81,64 +81,75 @@ export type Segment = {
 }
 
 
-export function solveQuadraticEquation(ax: number, bx: number, cx: number) {
-    const dx = bx * bx - 4 * ax * cx;
-    const retx: number[] = [];
-    if (ax === 0) {
-        if (bx !== 0) retx.push(cx / bx);
+export function solveQuadraticEquation(b: number, c: number, d: number) {
+    if (float_eq(b, 0)) {
+        // in fact, this is not a quadratic curve either.
+        if (float_eq(c, 0)) {
+            // in fact in fact, there are no solutions.
+            return [];
+        }
+        // linear solution:
+        return [-d / c];
     }
-    else if (dx === 0) {
-        retx.push(-bx / (2 * ax))
+    // quadratic solution:
+    const q = Math.sqrt(c * c - 4 * b * d);
+    const a2 = 2 * b;
+    if (float_eq(q, 0)) {
+        return [-c / a2]
     }
-    else if (dx > 0) {
-        const sqrt = Math.sqrt(dx);
-        retx.push((-bx + sqrt) / (2 * ax), (-bx - sqrt) / (2 * ax))
-    }
-    return retx.sort((a, b) => a - b);
+    return [(q - c) / a2, (-c - q) / a2].sort((a, b) => a - b);
 }
 
+function crt(v: number) {
+    return v < 0 ? -Math.pow(-v, 1 / 3) : Math.pow(v, 1 / 3);
+}
+const tau = 2 * Math.PI;
 // Cardano's mathematical formula
-// https://github.com/vtzast/Cubic_Equation_Solver/blob/main/Cubic%20Equation%20Solver.py
 export function solveCubicEquation(a: number, b: number, c: number, d: number): number[] {
-    if (a === 0) {
+    if (float_eq(a, 0)) {
         return solveQuadraticEquation(b, c, d)
     }
-    if (d === 0) {
+    if (float_eq(d, 0)) {
         return [0, ...solveQuadraticEquation(a, b, c)].filter((v, i, arr) => {
             return arr.indexOf(v) === i
         }).sort((a, b) => a - b);
     }
-    let roots: number[]
-    const cube_root = (x: number) => 0 <= x ? x ** (1 / 3) : (- ((-x) ** (1 / 3)))
-    const delta = 18 * a * b * c * d - 4 * (b ** 3) * d + (b ** 2) * (c ** 2) - 4 * a * (c ** 3) - 27 * (a ** 2) * (d ** 2)
-    const P = b ** 2 - 3 * a * c
-    const Q = 9 * a * b * c - 2 * (b ** 3) - 27 * (a ** 2) * d
-    if (delta > 0) {
-        const D1 = (2 * (b / a) ** 3 - 9 * ((b / a) * (c / a)) + 27 * (d / a)) / 54
-        const D2 = ((b / a) ** 2 - 3 * (c / a)) / 9
-        const D2_sqrt = Math.sqrt(D2);
-        const theta = Math.acos(D1 / (D2_sqrt ** 3))
-        const thdb = b / 3;
-        const x1 = -2 * D2_sqrt * Math.cos(theta / 3) - thdb
-        const x2 = -2 * D2_sqrt * Math.cos((theta + 2 * Math.PI) / 3) - thdb
-        const x3 = -2 * D2_sqrt * Math.cos((theta - 2 * Math.PI) / 3) - thdb
-        roots = [x1, x2, x3]
-    } else if (delta < 0) {
-        const t = Math.sqrt((Q ** 2) / 4 - P ** 3);
-        const N = cube_root(Q / 2 + t) + cube_root(Q / 2 - t)
-        const x = -b / (3 * a) + N / (3 * a)
-        // 复数解
-        // const z1 = complex(round((-B / (3 * A) - (N / 2) / (3 * A)), 2),
-        //     round(sqrt((3 / 4) * N ** 2 - 3 * P) / (3 * A), 2))
-        // const z2 = z1.conjugate()
-        roots = [x]
-    } else if (P == 0) {
-        const x = -b / (3 * a)
-        roots = [x]
+    // Cardano's algorithm
+    b /= a;
+    c /= a;
+    d /= a;
+
+    const p = (3 * c - b * b) / 3,
+        p3 = p / 3,
+        q = (2 * b * b * b - 9 * b * c + 27 * d) / 27,
+        q2 = q / 2,
+        discriminant = q2 * q2 + p3 * p3 * p3;
+    let roots: number[];
+
+    let u1, v1, x1, x2, x3;
+    if (discriminant < 0) {
+        const mp3 = -p / 3,
+            mp33 = mp3 * mp3 * mp3,
+            r = Math.sqrt(mp33),
+            t = -q / (2 * r),
+            cosphi = t < -1 ? -1 : t > 1 ? 1 : t,
+            phi = Math.acos(cosphi),
+            crtr = crt(r),
+            t1 = 2 * crtr;
+        x1 = t1 * Math.cos(phi / 3) - b / 3;
+        x2 = t1 * Math.cos((phi + tau) / 3) - b / 3;
+        x3 = t1 * Math.cos((phi + 2 * tau) / 3) - b / 3;
+        roots = [x1, x2, x3];
+    } else if (discriminant === 0) {
+        u1 = q2 < 0 ? crt(-q2) : -crt(q2);
+        x1 = 2 * u1 - b / 3;
+        x2 = -u1 - b / 3;
+        roots = [x1, x2];
     } else {
-        const xd = (9 * a * d - b * c) / (2 * P)
-        const xs = (4 * a * b * c - 9 * a ** 2 * d - b ** 3) / (a * P)
-        roots = [xd, xs]
+        const sd = Math.sqrt(discriminant);
+        u1 = crt(-q2 + sd);
+        v1 = crt(q2 + sd);
+        roots = [u1 - v1 - b / 3];
     }
     return roots.filter((v, i, arr) => {
         return arr.indexOf(v) === i

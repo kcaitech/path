@@ -532,37 +532,37 @@ export const utils = {
             pc = aligned[2].y,
             pd = aligned[3].y;
 
-        let d = -pa + 3 * pb - 3 * pc + pd,
-            a = 3 * pa - 6 * pb + 3 * pc,
-            b = -3 * pa + 3 * pb,
-            c = pa;
+        let a = -pa + 3 * pb - 3 * pc + pd,
+            b = 3 * pa - 6 * pb + 3 * pc,
+            c = -3 * pa + 3 * pb,
+            d = pa;
 
-        if (utils.approximately(d, 0)) {
+        if (utils.approximately(a, 0)) {
             // this is not a cubic curve.
-            if (utils.approximately(a, 0)) {
+            if (utils.approximately(b, 0)) {
                 // in fact, this is not a quadratic curve either.
-                if (utils.approximately(b, 0)) {
+                if (utils.approximately(c, 0)) {
                     // in fact in fact, there are no solutions.
                     return [];
                 }
                 // linear solution:
-                return [-c / b].filter(accept);
+                return [-d / c].filter(accept);
             }
             // quadratic solution:
-            const q = sqrt(b * b - 4 * a * c),
-                a2 = 2 * a;
-            return [(q - b) / a2, (-b - q) / a2].filter(accept);
+            const q = sqrt(c * c - 4 * b * d),
+                a2 = 2 * b;
+            return [(q - c) / a2, (-c - q) / a2].filter(accept);
         }
 
         // at this point, we know we need a cubic solution:
         // Cardano's algorithm
-        a /= d;
-        b /= d;
-        c /= d;
+        b /= a;
+        c /= a;
+        d /= a;
 
-        const p = (3 * b - a * a) / 3,
+        const p = (3 * c - b * b) / 3,
             p3 = p / 3,
-            q = (2 * a * a * a - 9 * a * b + 27 * c) / 27,
+            q = (2 * b * b * b - 9 * b * c + 27 * d) / 27,
             q2 = q / 2,
             discriminant = q2 * q2 + p3 * p3 * p3;
 
@@ -576,20 +576,20 @@ export const utils = {
                 phi = acos(cosphi),
                 crtr = crt(r),
                 t1 = 2 * crtr;
-            x1 = t1 * cos(phi / 3) - a / 3;
-            x2 = t1 * cos((phi + tau) / 3) - a / 3;
-            x3 = t1 * cos((phi + 2 * tau) / 3) - a / 3;
+            x1 = t1 * cos(phi / 3) - b / 3;
+            x2 = t1 * cos((phi + tau) / 3) - b / 3;
+            x3 = t1 * cos((phi + 2 * tau) / 3) - b / 3;
             return [x1, x2, x3].filter(accept);
         } else if (discriminant === 0) {
             u1 = q2 < 0 ? crt(-q2) : -crt(q2);
-            x1 = 2 * u1 - a / 3;
-            x2 = -u1 - a / 3;
+            x1 = 2 * u1 - b / 3;
+            x2 = -u1 - b / 3;
             return [x1, x2].filter(accept);
         } else {
             const sd = sqrt(discriminant);
             u1 = crt(-q2 + sd);
             v1 = crt(q2 + sd);
-            return [u1 - v1 - a / 3].filter(accept);
+            return [u1 - v1 - b / 3].filter(accept);
         }
     },
 
