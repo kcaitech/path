@@ -227,7 +227,7 @@ abstract class Bezier implements Segment {
             if (coincident) return [coincident];
         }
 
-        const pending: { c1: Bezier, c2: Bezier }[] = []
+        const pending: { c1: DiscreteNode, c2: DiscreteNode }[] = []
         const findPending0 = (d0: DiscreteNode, discreate1: DiscreteNode[]) => {
             for (let i = 0, len = discreate1.length; i < len; ++i) {
                 const d1 = discreate1[i];
@@ -235,7 +235,7 @@ abstract class Bezier implements Segment {
                     if (d1.childs) {
                         findPending0(d0, d1.childs)
                     } else {
-                        pending.push({ c1: d0.curve, c2: d1.curve })
+                        pending.push({ c1: d0, c2: d1 })
                     }
                 }
             }
@@ -247,7 +247,7 @@ abstract class Bezier implements Segment {
                     if (d0.childs) {
                         findPending1(d0.childs, d1)
                     } else {
-                        pending.push({ c1: d0.curve, c2: d1.curve })
+                        pending.push({ c1: d0, c2: d1 })
                     }
                 }
             }
@@ -270,7 +270,7 @@ abstract class Bezier implements Segment {
                                 findPending0(d0, d1.childs)
                             }
                             else {
-                                pending.push({ c1: d0.curve, c2: d1.curve })
+                                pending.push({ c1: d0, c2: d1 })
                             }
                         }
                     }
@@ -280,8 +280,26 @@ abstract class Bezier implements Segment {
 
         findPending(this.discreate(), curve.discreate());
 
+        const fixt = (t: number, n: DiscreteNode | undefined) => {
+            while (n) {
+                const { t0, t1 } = n;
+                const d = t1 - t0;
+                if (d < 0) throw new Error()
+                t = t0 + t0 * d;
+                n = n.parent;
+            }
+            return t;
+        }
+
         const intersect = pending.reduce((p, v) => {
-            p.push(...(binarySearch(v.c1, v.c2) as { type: "intersect", t0: number, t1: number }[]));
+            const intersect = binarySearch(v.c1.curve, v.c2.curve) as { type: "intersect", t0: number, t1: number }[];
+            if (intersect.length > 0) {
+                p.push(...intersect.map((i) => {
+                    i.t0 = fixt(i.t0, v.c1)
+                    i.t1 = fixt(i.t1, v.c2)
+                    return i;
+                }))
+            }
             return p;
         }, [] as { type: "intersect", t0: number, t1: number }[])
         if (intersect.length > 0) {
