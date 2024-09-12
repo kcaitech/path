@@ -45,7 +45,7 @@ const _evenodd = (grid0: Grid, grid: Grid, camp: PathCamp, p: Point, p0: Point, 
     const ray = new Line(p, rayendp)
 
 
-    const pending =grid.data.filter(d => d.camp === camp && d.color !== color);
+    const pending = grid.data.filter(d => d.camp === camp && d.color !== color);
 
     pending.forEach(d => {
         d.color = color;

@@ -1,5 +1,5 @@
 import { Line } from "../src/line";
-import { float_accuracy, float_eq, solveCubicEquation } from "../src/basic";
+import { float_accuracy, float_eq, point_eq, solveCubicEquation } from "../src/basic";
 import { Bezier3 } from "../src/bezier3";
 
 describe(`bezier3`, () => {
@@ -114,5 +114,12 @@ describe(`bezier3`, () => {
         expect(intersect[0].type).toBe('intersect')
         expect(float_eq(intersect[0].t0, 0.3524198532104492)).toBe(true)
         expect(float_eq(intersect[0].t1, 0.09022116661071777)).toBe(true)
+
+        const { t0, t1 } = intersect[0];
+        const pc1 = c1.pointAt(t0);
+        const pc2 = c2.pointAt(t1);
+
+        console.log(pc1, pc2)
+        expect(point_eq(pc1, pc2)).toBe(true);
     })
 })
