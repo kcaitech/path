@@ -108,6 +108,11 @@ describe(`bezier3`, () => {
         const c1 = new Bezier3(p1[0], p1[1], p1[2], p1[3])
         const c2 = new Bezier3(p2[0], p2[1], p2[2], p2[3])
 
-        console.log(c1.intersect(c2))
+        const intersect = c1.intersect(c2);
+
+        expect(intersect.length).toBe(1)
+        expect(intersect[0].type).toBe('intersect')
+        expect(float_eq(intersect[0].t0, 0.3524198532104492)).toBe(true)
+        expect(float_eq(intersect[0].t1, 0.09022116661071777)).toBe(true)
     })
 })

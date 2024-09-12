@@ -297,17 +297,30 @@ abstract class Bezier implements Segment {
     abstract toCmd(): PathCmd;
 }
 
+// 有且只有一个交点? 不对。可能有两个交点
 function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number }[] {
 
-    // 能否再快点？
+    // 能否再快点？// 判断curve接近线条时用线段交点计算？
 
     const box1 = curve1.bbox();
     const box2 = curve2.bbox();
-    if (!intersect_rect(curve1.bbox(), curve2.bbox())) return []
+    if (!intersect_rect(curve1.bbox(), curve2.bbox())) return [];
 
     const box1ispoint = box1.w < float_accuracy && box1.h < float_accuracy;
     const box2ispoint = box2.w < float_accuracy && box2.h < float_accuracy
     if (box1ispoint && box2ispoint) {
+        if (point_eq(curve1.from, curve2.from)) {
+            return [{ t0: 0, t1: 0 }]
+        }
+        if (point_eq(curve1.from, curve2.to)) {
+            return [{ t0: 0, t1: 1 }]
+        }
+        if (point_eq(curve1.to, curve2.from)) {
+            return [{ t0: 1, t1: 0 }]
+        }
+        if (point_eq(curve1.to, curve2.to)) {
+            return [{ t0: 1, t1: 1 }]
+        }
         return [{ t0: 0.5, t1: 0.5 }]
     }
 
@@ -331,13 +344,12 @@ function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number
     }
 
     const ret: { t0: number, t1: number }[] = []
-    for (let i = 0, len = c1.length; i < len; ++i) {
+    for (let i = 0; i < c1.length; ++i) {
         const v1 = c1[i];
-        for (let j = 0, len = c2.length; j < len; ++j) {
+        for (let j = 0; j < c2.length; ++j) {
             const v2 = c2[j];
             const ret1 = _binarySearch(v1, v2);
             if (ret1.length === 0) continue;
-
             const t11 = t1[i]
             const t12 = t1[i + 1]
             const d1 = t12 - t11
@@ -360,7 +372,13 @@ function binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number 
     const extrema1 = curve1.extrema().filter(t => !float_eq(t, 0) && !float_eq(t, 1));
     const extrema2 = curve2.extrema().filter(t => !float_eq(t, 0) && !float_eq(t, 1));
 
-    if (extrema1.length === 0 && extrema2.length === 0) return _binarySearch(curve1, curve2);
+    const epsilon = float_accuracy * 10; // todo 误差会放大，尤其当相交点刚好是分割点时
+    // 去重
+    const accept = (v: { t0: number, t1: number }, i: number, arr: { t0: number, t1: number }[]) => arr.findIndex((v1) => Math.abs(v.t0 - v1.t0) < epsilon && Math.abs(v.t1 - v1.t1) < epsilon) === i;
+
+    if (extrema1.length === 0 && extrema2.length === 0) {
+        return _binarySearch(curve1, curve2).filter(accept);
+    }
 
     let c1: Bezier[]
     let t1: number[]
@@ -402,7 +420,7 @@ function binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number 
             })
         }
     }
-    return ret;
+    return ret.filter(accept);
 }
 
 
