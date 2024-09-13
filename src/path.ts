@@ -1,6 +1,6 @@
 import { Grid, SegmentNode } from "./grid";
 import { Line } from "./line";
-import { contains_range, float_accuracy, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, Rect, rect_contains_point, Segment, splits } from "./basic";
+import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, Rect, rect_contains_point, Segment, splits } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 import { objectId } from "./objectid";
 
@@ -398,8 +398,8 @@ export class Path {
         let cursegments: Segment[] = []
 
         const addbrokensegments = (p: Point, segments: Segment[]) => {
-            const px = Math.round(p.x / float_accuracy);
-            const py = Math.round(p.y / float_accuracy);
+            const px = Math.round(p.x / float_accuracy6);
+            const py = Math.round(p.y / float_accuracy6);
             let x = brokensegments.get(px)
             if (!x) {
                 x = new Map<number, Segment[][]>()
@@ -490,27 +490,44 @@ export class Path {
             return segs.reverse().map(s => s.reverse()) // 原有的seg被替換，grid還能用不？
         }
 
-        const joinsegs1 = (to: Point) => {
-            const x = brokensegments.get(Math.round(to.x / float_accuracy))
-            if (!x) return false;
+        const getjoinsegs = (to: Point) => {
+            const x = brokensegments.get(Math.round(to.x / float_accuracy6))
+            if (!x) return;
 
-            const y = x.get(Math.round(to.y / float_accuracy))
-            if (!y || y.length === 0) return false;
+            const y = x.get(Math.round(to.y / float_accuracy6))
+            if (!y || y.length === 0) return;
 
             const pending = y.filter(s => !usedsegments.has(objectId(s)))
+            return pending.length > 0 ? pending : undefined;
+        }
 
-            if (pending.length === 0) return false;
+        const joinsegs1 = () => {
+            if (isclosed(curjoin)) return false;
+
+            const from = curjoin[0].from;
+            const to = curjoin[curjoin.length - 1].to;
+            // let joined = false;
+
+            const pending = getjoinsegs(to) || getjoinsegs(from);
+
+            if (!pending) return false;
 
             if (pending.length === 1) {
                 const seg = pending[0];
                 usedsegments.add(objectId(seg))
-                if (point_eq(to, seg[0].from)) {
+
+                const segfrom = seg[0].from;
+                const segto = seg[seg.length - 1].to;
+
+                if (point_eq6(to, segfrom)) {
                     curjoin.push(...seg)
-                } else {
+                } else if (point_eq6(to, segto)) {
                     curjoin.push(...reverse(seg))
+                } else if (point_eq6(segto, from)) {
+                    curjoin.unshift(...seg)
+                } else {
+                    curjoin.unshift(...reverse(seg))
                 }
-                // joined = true;
-                return true;
             }
 
             if (pending.length > 1) {
@@ -520,29 +537,16 @@ export class Path {
                 // 
                 // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
                 // 或者优先最大面积？
+                // todo
+                throw new Error();
             }
-
-
-            return false;
+            return true;
         }
 
         const joinsegs = () => {
 
-            for (; ;) {
+            while (joinsegs1());
 
-                if (isclosed(curjoin)) break;
-
-                const from = curjoin[0].from;
-                const to = curjoin[curjoin.length - 1].to;
-                // let joined = false;
-
-                if (joinsegs1(to)) continue;
-
-                if (joinsegs1(from)) continue;
-
-                break;
-
-            }
         }
 
         for (let [k, v] of brokensegments) {

@@ -1,7 +1,12 @@
 export const float_accuracy = 1e-7;
+export const float_accuracy6 = 1e-6;
 
 export function float_eq(a: number, b: number) {
     return Math.abs(a - b) < float_accuracy;
+}
+
+export function float_eq6(a: number, b: number) {
+    return Math.abs(a - b) < float_accuracy6;
 }
 
 export type Point = {
@@ -11,6 +16,10 @@ export type Point = {
 
 export function point_eq(a: Point, b: Point) {
     return float_eq(a.x, b.x) && float_eq(a.y, b.y)
+}
+
+export function point_eq6(a: Point, b: Point) {
+    return float_eq6(a.x, b.x) && float_eq6(a.y, b.y)
 }
 
 export type Line = {

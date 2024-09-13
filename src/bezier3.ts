@@ -1,5 +1,5 @@
 import { Line } from "./line";
-import { alignX, float_accuracy, float_eq, intersect_rect, isLine, PathCmd, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation, splits } from "./basic"
+import { alignX, float_accuracy, float_accuracy6, float_eq, intersect_rect, isLine, PathCmd, Point, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation, splits } from "./basic"
 
 const ZERO = { x: 0, y: 0 };
 
@@ -394,7 +394,7 @@ function binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number 
     const extrema2 = curve2.extrema().filter(t => !float_eq(t, 0) && !float_eq(t, 1));
 
     // todo 迭代到分割点时，会多查找一次
-    const epsilon = float_accuracy * 10; // todo 误差会放大，尤其当相交点刚好是分割点时
+    const epsilon = float_accuracy6; // todo 误差会放大，尤其当相交点刚好是分割点时
     // 去重
     const accept = (v: { t0: number, t1: number }, i: number, arr: { t0: number, t1: number }[]) => arr.findIndex((v1) => Math.abs(v.t0 - v1.t0) < epsilon && Math.abs(v.t1 - v1.t1) < epsilon) === i;
 
