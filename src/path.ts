@@ -105,14 +105,16 @@ export class Path {
     // 即segment加入到level 0的grid时，grid需要扩展; segment加入到格子里时需要分割
     // 
     _grid?: Grid // for path op
-    _subjectNodes?: SegmentNode[]
-    _clipNodes?: SegmentNode[]
+    // _subjectNodes?: SegmentNode[]
+    // _clipNodes?: SegmentNode[]
+    _grid_dirty?: boolean // 需要修复
 
     addPath(path: Path) {
         this._paths.push(...path._paths);
 
         const _grid = this._grid;
         if (_grid) {
+            this._op_fix_grid();
             path._paths.forEach(p => {
                 _grid.adds(p.segments(), p.bbox())
             })
@@ -130,9 +132,50 @@ export class Path {
         }
     }
 
-    op(path: Path, type: OpType) {
-        if (!this._subjectNodes) this._subjectNodes = [];
-        const subjectNodes = this._subjectNodes;
+    private _op_fix_grid() {
+        // 复用grid以
+        // op grid要复用，得
+        // 1. 清除掉removed，对应的parent要清理
+        // 2. 重置coincident
+        // 3. 新加入的（reverse）要加入到grid
+        // 直接做法是对比新生成的path的segment与grid中的segment,去除多余的，加入缺少的，同时重置状态
+
+        if (!this._grid_dirty || !this._grid) return;
+
+        const grid = this._grid;
+        const segset = new Set<number>();
+        // 清除多余segmentnode
+        this._paths.forEach(p => {
+            p.segments().forEach(s => segset.add(objectId(s)))
+        })
+
+        const segset2 = new Set<number>();
+        grid.data.slice(0).forEach(d => {
+            if (!segset.has(objectId(d.seg))) grid.rm(d);
+            else segset2.add(objectId(d.seg))
+        })
+
+        // 加入新增segment
+        this._paths.forEach(p => {
+            p.segments().forEach(s => {
+                if (!segset2.has(objectId(s))) grid.add(s)
+            })
+        })
+
+        // 清除状态
+        grid.data.forEach(d => {
+            d.childs = undefined;
+            d.camp = PathCamp.Subject;
+            d.coincident = undefined;
+            d.removed = undefined;
+            d.parent = undefined;
+        })
+
+        this._grid_dirty = undefined;
+    }
+
+    private _op_prepare_grid(path: Path) {
+        let subjectNodes: SegmentNode[];
         if (!this._grid) {
             const bbox = this.bbox();
             const x = Math.floor(bbox.x)
@@ -141,27 +184,26 @@ export class Path {
             const y2 = Math.ceil(bbox.y2)
             const _grid = new Grid(x, y, x2 - x + 1, y2 - x + 1, 0, grid_size, grid_size)
             this._grid = _grid;
+            subjectNodes = []
             this._paths.forEach(p => {
                 subjectNodes.push(..._grid.adds(p.segments(), p.bbox()))
             })
+        } else {
+            this._op_fix_grid();
+            subjectNodes = this._grid.data.slice(0)
         }
 
-        if (this._clipNodes) {
-            function tosubject(node: SegmentNode) {
-                node.camp = PathCamp.Subject
-                // node.childs.forEach(c => tosubject(c))
-            }
-            this._clipNodes.forEach(n => tosubject(n))
-            subjectNodes.push(...this._clipNodes);
-        }
-
-        this._clipNodes = []
-        const clipNodes = this._clipNodes;
+        const clipNodes: SegmentNode[] = [];
         const _grid = this._grid;
 
         path._paths.forEach(p => {
             clipNodes.push(..._grid.adds(p.segments(), p.bbox(), PathCamp.Clip))
         })
+
+        return { grid: _grid, subjectNodes, clipNodes }
+    }
+
+    private _op_prepare_segments(clipNodes: SegmentNode[], _grid: Grid) {
 
         // 查找相交点
         function searchIntersection(clipNode: SegmentNode, grid: Grid, level: number, subjectNodes: Map<number, SegmentNode>) {
@@ -300,7 +342,9 @@ export class Path {
                 }
             }
         }
+    }
 
+    private _op_rm_segments(type: OpType, subjectNodes: SegmentNode[], clipNodes: SegmentNode[], _grid: Grid) {
         // evenodd
         // even true, odd false
         const evenodd = (seg: SegmentNode, camp: PathCamp): boolean => {
@@ -332,24 +376,24 @@ export class Path {
             }
         }
 
-        const rm = (rmsubject: (s: SegmentNode, camp: PathCamp) => void, rmclip: (s: SegmentNode, camp: PathCamp) => void) => {
+        const rm1 = (subjectNodes: SegmentNode[], rmsubject: (s: SegmentNode, camp: PathCamp) => void) => {
+            if (subjectNodes.length === 0) return;
+            // swap camp
+            const s0camp = subjectNodes[0].camp;
+            const camp = s0camp === PathCamp.Clip ? PathCamp.Subject : PathCamp.Clip;
             for (let i = 0, len = subjectNodes.length; i < len; ++i) {
                 const s = subjectNodes[i];
                 if (s.childs) {
-                    s.childs.forEach(s => rmsubject(s, PathCamp.Clip))
+                    s.childs.forEach(s => rmsubject(s, camp))
                 } else {
-                    rmsubject(s, PathCamp.Clip)
+                    rmsubject(s, camp)
                 }
             }
+        }
 
-            for (let i = 0, len = clipNodes.length; i < len; ++i) {
-                const s = clipNodes[i];
-                if (s.childs) {
-                    s.childs.forEach(s => rmclip(s, PathCamp.Subject))
-                } else {
-                    rmclip(s, PathCamp.Subject)
-                }
-            }
+        const rm = (rmsubject: (s: SegmentNode, camp: PathCamp) => void, rmclip: (s: SegmentNode, camp: PathCamp) => void) => {
+            rm1(subjectNodes, rmsubject);
+            rm1(clipNodes, rmclip);
         }
 
         const rmDiff = () => {
@@ -378,21 +422,10 @@ export class Path {
                 rmDiff();
                 break;
         }
+        return removed;
+    }
 
-        // todo 处理重合路径
-        // 7. 共线处理</br>
-        // difference: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如同时在或者同时不在Subject和Clip中，则标记删除</br>
-        // union: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
-        // intersection: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
-        // *同时在或者同时不在，是指填充重合的区域的边，反之则是不重合的边。即difference重合部分要去除，union和intersection重合部分要保留</br>
-
-        // todo
-        // 根据op重建路径
-        // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
-        // difference: 遍历完所有未删除的Subject和Clip</br>
-        // union: 遍历完所有未删除的Subject和Clip</br>
-        // intersection: 遍历完所有未删除的Subject和Clip</br>
-
+    private _op_rebuild_paths(subjectNodes: SegmentNode[], clipNodes: SegmentNode[]) {
         const brokensegments: Map<number, Map<number, Segment[][]>> = new Map();
         const closedsegments: Segment[][] = [];
         let cursegments: Segment[] = []
@@ -569,12 +602,10 @@ export class Path {
                 }
             }
         }
+        return { closedsegments, joinedsegments }
+    }
 
-        // 生成路徑
-        // 生成新_paths
-
-        this._bbox = undefined;
-        this._paths.length = 0;
+    private _op_rebuild_paths2(closedsegments: Segment[][], joinedsegments: Segment[][]) {
         for (let i = 0, len = closedsegments.length; i < len; ++i) {
             const segs = closedsegments[i];
             const from = segs[0].from;
@@ -591,22 +622,48 @@ export class Path {
             }
             this._paths.push(path)
         }
+        // todo joinedsegments
+    }
 
-        let saverm: SegmentNode[] | undefined
+    op(path: Path, type: OpType) {
+
+        const { grid: _grid, subjectNodes, clipNodes } = this._op_prepare_grid(path);
+
+        this._op_prepare_segments(clipNodes, _grid);
+
+        const removed: SegmentNode[] = this._op_rm_segments(type, subjectNodes, clipNodes, _grid);
+
+        const { closedsegments, joinedsegments } = this._op_rebuild_paths(subjectNodes, clipNodes);
+
+        // todo 处理重合路径
+        // 7. 共线处理</br>
+        // difference: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如同时在或者同时不在Subject和Clip中，则标记删除</br>
+        // union: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
+        // intersection: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
+        // *同时在或者同时不在，是指填充重合的区域的边，反之则是不重合的边。即difference重合部分要去除，union和intersection重合部分要保留</br>
+
+        // todo
+        // 根据op重建路径
+        // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
+        // difference: 遍历完所有未删除的Subject和Clip</br>
+        // union: 遍历完所有未删除的Subject和Clip</br>
+        // intersection: 遍历完所有未删除的Subject和Clip</br>
+
+        // 生成路徑
+        // 生成新_paths
+        this._bbox = undefined;
+        this._paths.length = 0;
+        this._op_rebuild_paths2(closedsegments, joinedsegments)
+
         if (type === OpType.Xor) {
-            // todo
-
-            saverm = removed.slice(0);
             removed.forEach(s => s.removed = false);
-
-            rm(rmoutside, rminside);
-
             // 重建路径，合并路径
+            this._op_rm_segments(type, clipNodes, subjectNodes, _grid);
+            const { closedsegments, joinedsegments } = this._op_rebuild_paths(subjectNodes, clipNodes);
+            this._op_rebuild_paths2(closedsegments, joinedsegments)
         }
 
-        // 整理grid，以备后续使用
-        // todo 修复grid,_subjectNodes,_clipNodes
-
+        this._grid_dirty = true;
     }
 
     clone() {

@@ -1,4 +1,4 @@
-import { float_eq, PathCamp, Point, point_eq, Rect, rect_contains_point, Segment } from "./basic"
+import { float_eq, PathCamp, Point, Rect, rect_contains_point, Segment } from "./basic"
 import { Line } from "./line"
 import { objectId } from "./objectid"
 
@@ -85,6 +85,7 @@ export class Grid implements Rect {
     items?: Grid[]
 
     expandable: boolean
+    color: number = 0
 
     constructor(x: number, y: number, w: number, h: number, level: number = 0, row_count: number = 1, col_count: number = 1) {
         // 修正下x,y,w,h?
@@ -99,6 +100,32 @@ export class Grid implements Rect {
         this.level = level;
         this.expandable = level === 0;
         if (row_count > 1 || col_count > 1) this.initItems(row_count, col_count);
+    }
+
+    rm(data: SegmentNode) {
+        if (this.dataMap.has(objectId(data))) return;
+
+        const idx = this.data.indexOf(data);
+        this.data.splice(idx, 1);
+
+        if (!this.items) return;
+
+        const bbox = data.seg.bbox(); // 可以超出当前grid范围的
+        if (bbox.w === 0 && bbox.h === 0) return;
+
+        const ci = Math.max(0, Math.floor((bbox.x - this.x) / this.col_w));
+        const ri = Math.max(0, Math.floor((bbox.y - this.y) / this.row_h));
+
+        const ce = Math.min(this.col_count, Math.floor((bbox.x + bbox.w - this.x) / this.col_w + 1));
+        const re = Math.min(this.row_count, Math.floor((bbox.y + bbox.h - this.y) / this.row_h + 1));
+        const items = this.items;
+        for (let i = ri; i < re; ++i) {
+            for (let j = ci; j < ce; ++j) {
+                const idx = i * this.col_count + j;
+                const item = items[idx];
+                item.rm(data)
+            }
+        }
     }
 
     private initItems(row_count: number, col_count: number) {
@@ -159,8 +186,6 @@ export class Grid implements Rect {
         }
     }
 
-    color: number = 0
-
     evenodd(p: Point, camp: PathCamp, side?: 'left' | 'top' | 'right' | 'bottom') {
 
         side = side || ([
@@ -192,7 +217,7 @@ export class Grid implements Rect {
                 const idx = i * this.col_count + j;
                 const item = items[idx];
                 if (data.seg.intersect2(item)) {
-                    item.add(data)
+                    item._add(data)
                 }
             }
         }
@@ -202,10 +227,28 @@ export class Grid implements Rect {
         return new Grid(x, y, this.col_w, this.row_h, this.level + 1);
     }
 
-    private add(node: SegmentNode) {
+    private _add(node: SegmentNode) {
         this.data.push(node);
         this.dataMap.set(objectId(node), node)
         if (this.items) this._add2item(node);
+        return node;
+    }
+
+    add(data: Segment, camp?: PathCamp) {
+        if (this.expandable) {
+            const bbox = data.bbox();
+            this.expand(bbox.x, bbox.y, bbox.w + 1, bbox.h + 1);
+        }
+        const node: SegmentNode = {
+            seg: data,
+            // childs: [],
+            camp: camp ?? PathCamp.Subject,
+            // grid: this,
+            color: 0,
+            t0: 0,
+            t1: 1
+        }
+        this._add(node);
         return node;
     }
 
@@ -223,7 +266,7 @@ export class Grid implements Rect {
                 t0: 0,
                 t1: 1
             }
-            this.add(node);
+            this._add(node);
             return node;
         })
     }
