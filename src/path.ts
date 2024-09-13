@@ -204,7 +204,10 @@ export class Path {
                 const childs = splits(node.seg, ts);
                 ts = ts.slice(0);
                 ts.push(1);
-                if (childs.length !== ts.length) throw new Error();
+                if (childs.length !== ts.length) {
+                    console.log(ts, childs)
+                    throw new Error();
+                }
                 node.childs = []
                 let pt = 0
                 ts.forEach((t, i) => {

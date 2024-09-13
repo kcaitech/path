@@ -167,8 +167,8 @@ abstract class Bezier implements Segment {
 
                 const sp = c.split(0.5);
                 n.childs = []
-                n.childs.push({ t0: 0, t1: 0.5, curve: sp[0] })
-                n.childs.push({ t0: 0.5, t1: 1, curve: sp[1] })
+                n.childs.push({ t0: 0, t1: 0.5, curve: sp[0], parent: n })
+                n.childs.push({ t0: 0.5, t1: 1, curve: sp[1], parent: n })
                 if (level < 4) split(n.childs, level + 1);
             }
         }
@@ -179,6 +179,7 @@ abstract class Bezier implements Segment {
             this._discrete = nodes;
         } else {
             this._discrete = nodes[0].childs!
+            this._discrete.forEach(n => n.parent = undefined)
         }
 
         return this._discrete;
@@ -285,7 +286,7 @@ abstract class Bezier implements Segment {
                 const { t0, t1 } = n;
                 const d = t1 - t0;
                 if (d < 0) throw new Error()
-                t = t0 + t0 * d;
+                t = t0 + t * d;
                 n = n.parent;
             }
             return t;
@@ -302,6 +303,7 @@ abstract class Bezier implements Segment {
             }
             return p;
         }, [] as { type: "intersect", t0: number, t1: number }[])
+
         if (intersect.length > 0) {
             intersect.forEach(c => c.type = 'intersect')
             return intersect;
@@ -319,6 +321,7 @@ abstract class Bezier implements Segment {
 function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number }[] {
 
     // 能否再快点？// 判断curve接近线条时用线段交点计算？
+    // 当迭代一定层级后使用线段交点逼近？有没有可能平行？
 
     const box1 = curve1.bbox();
     const box2 = curve2.bbox();
@@ -390,6 +393,7 @@ function binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number 
     const extrema1 = curve1.extrema().filter(t => !float_eq(t, 0) && !float_eq(t, 1));
     const extrema2 = curve2.extrema().filter(t => !float_eq(t, 0) && !float_eq(t, 1));
 
+    // todo 迭代到分割点时，会多查找一次
     const epsilon = float_accuracy * 10; // todo 误差会放大，尤其当相交点刚好是分割点时
     // 去重
     const accept = (v: { t0: number, t1: number }, i: number, arr: { t0: number, t1: number }[]) => arr.findIndex((v1) => Math.abs(v.t0 - v1.t0) < epsilon && Math.abs(v.t1 - v1.t1) < epsilon) === i;

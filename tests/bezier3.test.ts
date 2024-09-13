@@ -119,7 +119,7 @@ describe(`bezier3`, () => {
         const pc1 = c1.pointAt(t0);
         const pc2 = c2.pointAt(t1);
 
-        console.log(pc1, pc2)
+        // console.log(pc1, pc2)
         expect(point_eq(pc1, pc2)).toBe(true);
     })
 })
