@@ -1,6 +1,6 @@
 import { Grid, SegmentNode } from "./grid";
 import { Line } from "./line";
-import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, Rect, rect_contains_point, Segment, splits } from "./basic";
+import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, Rect, Segment, splits } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 import { objectId } from "./objectid";
 

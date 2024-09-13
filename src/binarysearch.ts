@@ -1,4 +1,4 @@
-import { float_accuracy, float_accuracy6, float_eq, intersect_rect, Point, point_eq, Rect, Segment, splits } from "./basic";
+import { float_accuracy, float_accuracy6, float_eq, intersect_rect, point_eq, Segment, splits } from "./basic";
 
 
 interface Bezier extends Segment {
