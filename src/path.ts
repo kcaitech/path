@@ -622,7 +622,23 @@ export class Path {
             }
             this._paths.push(path)
         }
-        // todo joinedsegments
+        // joinedsegments
+        for (let i = 0, len = joinedsegments.length; i < len; ++i) {
+            const segs = joinedsegments[i];
+            const from = segs[0].from;
+            const path = new Path1();
+            path.start.x = from.x;
+            path.start.y = from.y;
+            // path.isClose = true;
+            path._segments = []
+            for (let j = 0, len = segs.length; j < len; ++j) {
+                const s = segs[j];
+                // if (j === len - 1 && s.type === 'L') break;
+                path._segments.push(s);
+                path.cmds.push(s.toCmd())
+            }
+            this._paths.push(path)
+        }
     }
 
     op(path: Path, type: OpType) {

@@ -22,6 +22,14 @@ export function point_eq6(a: Point, b: Point) {
     return float_eq6(a.x, b.x) && float_eq6(a.y, b.y)
 }
 
+export function points_eq(points1: Point[], points2: Point[]) {
+    if (points1.length !== points2.length) return false;
+    for (let i = 0, len = points1.length; i < len; ++i) {
+        if (!point_eq(points1[i], points2[i])) return false;
+    }
+    return true;
+}
+
 export type Line = {
     p1: Point,
     p2: Point
