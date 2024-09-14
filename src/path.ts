@@ -783,4 +783,9 @@ export class Path {
         this._bbox = undefined;
         this._grid = undefined; // 简单重新生成
     }
+
+    freeze() {
+        this._paths.forEach(seg => Object.freeze(seg));
+        Object.freeze(this._paths);
+    }
 }
