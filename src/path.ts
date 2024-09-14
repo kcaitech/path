@@ -527,34 +527,30 @@ export class Path {
 
             const pending = getjoinsegs(to) || getjoinsegs(from);
 
-            if (!pending) return false;
+            if (!pending || pending.length === 0) return false;
 
-            if (pending.length === 1) {
-                const seg = pending[0];
-                usedsegments.add(objectId(seg))
+            // if (pending.length > 1) {
+            //     // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
+            //     // 需要知道当前seg的内外边
+            //     throw new Error();
+            // }
+            // 现在先选择一条顺向的
 
-                const segfrom = seg[0].from;
-                const segto = seg[seg.length - 1].to;
+            const seg = pending.find((v) => point_eq6(to, v[0].from)) || pending[0];
+            usedsegments.add(objectId(seg))
+            const segfrom = seg[0].from;
+            const segto = seg[seg.length - 1].to;
 
-                if (point_eq6(to, segfrom)) {
-                    curjoin.push(...seg)
-                } else if (point_eq6(to, segto)) {
-                    curjoin.push(...reverse(seg))
-                } else if (point_eq6(segto, from)) {
-                    curjoin.unshift(...seg)
-                } else {
-                    curjoin.unshift(...reverse(seg))
-                }
+            if (point_eq6(to, segfrom)) {
+                curjoin.push(...seg)
+            } else if (point_eq6(to, segto)) {
+                curjoin.push(...reverse(seg))
+            } else if (point_eq6(segto, from)) {
+                curjoin.unshift(...seg)
+            } else {
+                curjoin.unshift(...reverse(seg))
             }
 
-            if (pending.length > 1) {
-                // todo
-                // 优先相同camp
-                // 其次内外面与当前路径一致
-                // 
-                // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
-                throw new Error();
-            }
             return true;
         }
 
