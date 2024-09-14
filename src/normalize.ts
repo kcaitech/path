@@ -2,6 +2,8 @@
 // path -> curvpoint[]
 // ----------------------------------------------------------------------------------
 
+import { PathCmd } from "./basic";
+import { Path1 } from "./path1";
 
 // ----------------------------------------------------------------------------------
 // arc to bezier
@@ -154,58 +156,53 @@ function arcToBezier(lastPoint: { x: number, y: number }, arcParams: number[]) {
 
 
 // // 将路径中的相对值转换为绝对坐标
-// type CurvSeg = {
-//     beginpoint: { x: number, y: number },
-//     prepoint: { x: number, y: number },
-//     points: CurvePoint[],
 
-//     preHandle: { x: number, y: number },
-//     lastCommand: string;
-
-//     isClosed?: boolean,
-// }
-
-type CmdType = { type: "M", x: number, y: number } |
-{ type: "L", x: number, y: number } |
-{ type: "Z" } |
-{ type: "Q", x: number, y: number, x1: number, y1: number } |
-{ type: "C", x: number, y: number, x1: number, y1: number, x2: number, y2: number }
-
+type CmdType = PathCmd |
+{ type: "M", x: number, y: number } |
+{ type: "Z" }
 
 type CurvCtx = {
-    segs: CmdType[][], // 初始化时至少给一个
+    segs: Path1[], // 初始化时至少给一个
     lastCommand: CmdType,
     prepoint: { x: number, y: number }
 }
 
 const normalHandler: { [key: string]: (ctx: CurvCtx, item: any[]) => void } = {}
 
-
-export function normalize(path: (number | string)[][]): CmdType[][] {
-    const ctx: CurvCtx = {
+export class Normalizer {
+    ctx: CurvCtx = {
         segs: [],
         lastCommand: { type: "Z" },
         prepoint: { x: 0, y: 0 }
-    };
-    // ctx.segs.push([]);
-    for (let i = 0, len = path.length; i < len; i++) {
-        const item = path[i];
-        normalHandler[item[0]](ctx, item)
     }
-    return ctx.segs.reduce((p, c) => {
-        if (c.length > 1) p.push(c); // 过滤掉空路径
-        return p;
-    }, [] as CmdType[][]);
+    add(item: (number | string)[]) {
+        normalHandler[item[0]](this.ctx, item)
+    }
+    getPaths() {
+        return this.ctx.segs.reduce((p, c) => {
+            if (c.cmds.length > 1) p.push(c); // 过滤掉空路径
+            return p;
+        }, [] as Path1[]);
+    }
 }
 
-function prepareCtx(ctx: CurvCtx, x: number, y: number) {
-    if (!ctx.segs[ctx.segs.length - 1]) {
-        ctx.segs.push([]);
+function preparePath(ctx: CurvCtx, x: number, y: number) {
+    if (!ctx.segs[ctx.segs.length - 1]) { // 没有m,浏览器不显示
+        const path = new Path1();
+        ctx.segs.push(path);
+        path.start.x = x;
+        path.start.y = y;
+        return path;
     }
-    if (ctx.segs[ctx.segs.length - 1].length === 0) {
-        // 缺"M"
-        ctx.segs[ctx.segs.length - 1].push({ type: "M", x, y });
+    const path = ctx.segs[ctx.segs.length - 1]
+    if (path.isClose) {
+        const path1 = new Path1();
+        ctx.segs.push(path1);
+        path1.start.x = ctx.prepoint.x;
+        path1.start.y = ctx.prepoint.y;
+        return path1;
     }
+    return path;
 }
 
 normalHandler['M'] = (ctx: CurvCtx, item: any[]) => {
@@ -213,37 +210,41 @@ normalHandler['M'] = (ctx: CurvCtx, item: any[]) => {
     const y = item[2];
 
     // 新path
-    ctx.segs.push([]);
+    const path = new Path1();
+    ctx.segs.push(path);
+    path.start.x = x;
+    path.start.y = y;
     ctx.lastCommand = { type: "M", x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
 normalHandler['m'] = (ctx: CurvCtx, item: any[]) => {
-    ctx.segs.push([]);
+    const path = new Path1();
+    ctx.segs.push(path);
     const x = (ctx.prepoint.x) + item[1];
     const y = (ctx.prepoint.y) + item[2];
+    path.start.x = x;
+    path.start.y = y;
     ctx.lastCommand = { type: "M", x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
 
 normalHandler['L'] = (ctx: CurvCtx, item: any[]) => {
-    const x = item[1];
-    const y = item[2];
-    prepareCtx(ctx, x, y)
+    const x: number = item[1];
+    const y: number = item[2];
+    const path = preparePath(ctx, x, y)
     ctx.lastCommand = { type: "L", x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
 normalHandler['l'] = (ctx: CurvCtx, item: any[]) => {
     const x = ctx.prepoint.x + item[1];
     const y = ctx.prepoint.y + item[2];
-    prepareCtx(ctx, x, y)
+    const path = preparePath(ctx, x, y)
     ctx.lastCommand = { type: "L", x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -265,9 +266,9 @@ normalHandler['A'] = (ctx: CurvCtx, item: any[]) => {
         const y2 = item[4];
         // curveHandleBezier(seg, x1, y1, x2, y2, x, y);
 
-        prepareCtx(ctx, x, y);
+        const path = preparePath(ctx, x, y);
         ctx.lastCommand = { type: "C", x1, y1, x2, y2, x, y }
-        ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+        path.cmds.push(ctx.lastCommand)
         ctx.prepoint.x = x;
         ctx.prepoint.y = y;
     }
@@ -282,7 +283,6 @@ normalHandler['a'] = (ctx: CurvCtx, item: any[]) => {
     item[6] = x;
     item[7] = y;
     normalHandler['A'](ctx, item)
-
 }
 
 normalHandler['H'] = (ctx: CurvCtx, item: any[]) => {
@@ -290,9 +290,9 @@ normalHandler['H'] = (ctx: CurvCtx, item: any[]) => {
     const x = item[1];
     const y = ctx.prepoint.y;
 
-    prepareCtx(ctx, x, y)
+    const path = preparePath(ctx, x, y)
     ctx.lastCommand = { type: "L", x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -301,9 +301,9 @@ normalHandler['h'] = (ctx: CurvCtx, item: any[]) => {
     const x = ctx.prepoint.x + item[1];
     const y = ctx.prepoint.y;
 
-    prepareCtx(ctx, x, y)
+    const path = preparePath(ctx, x, y)
     ctx.lastCommand = { type: "L", x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -312,9 +312,9 @@ normalHandler['V'] = (ctx: CurvCtx, item: any[]) => {
     const x = ctx.prepoint.x;
     const y = item[1];
 
-    prepareCtx(ctx, x, y)
+    const path = preparePath(ctx, x, y)
     ctx.lastCommand = { type: "L", x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -323,9 +323,9 @@ normalHandler['v'] = (ctx: CurvCtx, item: any[]) => {
     const x = ctx.prepoint.x;
     const y = ctx.prepoint.y + item[1];
 
-    prepareCtx(ctx, x, y)
+    const path = preparePath(ctx, x, y)
     ctx.lastCommand = { type: "L", x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -340,9 +340,9 @@ normalHandler['C'] = (ctx: CurvCtx, item: any[]) => {
     const x2 = item[3];
     const y2 = item[4];
 
-    prepareCtx(ctx, x, y);
+    const path = preparePath(ctx, x, y);
     ctx.lastCommand = { type: "C", x1, y1, x2, y2, x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -356,9 +356,9 @@ normalHandler['c'] = (ctx: CurvCtx, item: any[]) => {
     const x2 = ctx.prepoint.x + item[3];
     const y2 = ctx.prepoint.y + item[4];
 
-    prepareCtx(ctx, x, y);
+    const path = preparePath(ctx, x, y);
     ctx.lastCommand = { type: "C", x1, y1, x2, y2, x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -390,9 +390,9 @@ normalHandler['S'] = (ctx: CurvCtx, item: any[]) => {
         // curveHandleQuaBezier(seg, x1, y1, x, y);
     }
 
-    prepareCtx(ctx, x, y);
+    const path = preparePath(ctx, x, y);
     ctx.lastCommand = { type: "C", x1, y1, x2, y2, x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -425,9 +425,9 @@ normalHandler['s'] = (ctx: CurvCtx, item: any[]) => {
 
     // item[0] = 'C';
     // seg.lastCommand = 'C';
-    prepareCtx(ctx, x, y);
+    const path = preparePath(ctx, x, y);
     ctx.lastCommand = { type: "C", x1, y1, x2, y2, x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -442,9 +442,9 @@ normalHandler['Q'] = (ctx: CurvCtx, item: any[]) => {
     const y1 = item[2];
     // const x2 = x1;
     // const y2 = y1;
-    prepareCtx(ctx, x, y);
+    const path = preparePath(ctx, x, y);
     ctx.lastCommand = { type: "Q", x1, y1, x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -459,9 +459,9 @@ normalHandler['q'] = (ctx: CurvCtx, item: any[]) => {
 
     // const x2 = x1;
     // const y2 = y1;
-    prepareCtx(ctx, x, y);
+    const path = preparePath(ctx, x, y);
     ctx.lastCommand = { type: "Q", x1, y1, x, y }
-    ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    path.cmds.push(ctx.lastCommand)
     ctx.prepoint.x = x;
     ctx.prepoint.y = y;
 }
@@ -483,18 +483,18 @@ normalHandler['T'] = (ctx: CurvCtx, item: any[]) => {
 
         // const x2 = x1;
         // const y2 = y1;
-        prepareCtx(ctx, x, y);
+        const path = preparePath(ctx, x, y);
         ctx.lastCommand = { type: "Q", x1, y1, x, y }
-        ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+        path.cmds.push(ctx.lastCommand)
         ctx.prepoint.x = x;
         ctx.prepoint.y = y;
     } else {
         const x = item[1];
         const y = item[2];
 
-        prepareCtx(ctx, x, y)
+        const path = preparePath(ctx, x, y)
         ctx.lastCommand = { type: "L", x, y }
-        ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+        path.cmds.push(ctx.lastCommand)
         ctx.prepoint.x = x;
         ctx.prepoint.y = y;
     }
@@ -510,50 +510,44 @@ normalHandler['t'] = (ctx: CurvCtx, item: any[]) => {
 
         // const x2 = x1;
         // const y2 = y1;
-        prepareCtx(ctx, x, y);
+        const path = preparePath(ctx, x, y);
         ctx.lastCommand = { type: "Q", x1, y1, x, y }
-        ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+        path.cmds.push(ctx.lastCommand)
         ctx.prepoint.x = x;
         ctx.prepoint.y = y;
     } else {
         const x = ctx.prepoint.x + item[1];
         const y = ctx.prepoint.y + item[2];
 
-        prepareCtx(ctx, x, y)
+        const path = preparePath(ctx, x, y)
         ctx.lastCommand = { type: "L", x, y }
-        ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+        path.cmds.push(ctx.lastCommand)
         ctx.prepoint.x = x;
         ctx.prepoint.y = y;
     }
 }
 
 normalHandler['Z'] = (ctx: CurvCtx, item: any[]) => {
-    // const seg = ctx.segs[ctx.segs.length - 1];
-
-    // seg.isClosed = true;
-
-    // seg.prepoint.x = seg.beginpoint.x;
-    // seg.prepoint.y = seg.beginpoint.y;
 
     ctx.lastCommand = { type: "Z" };
-    if (ctx.segs[ctx.segs.length - 1] && ctx.segs[ctx.segs.length - 1].length > 1) {
-        ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+    if (ctx.segs.length > 0) {
+        const path = ctx.segs[ctx.segs.length - 1]
+        path.isClose = true;
+
+        ctx.prepoint.x = path.start.x;
+        ctx.prepoint.y = path.start.y;
     }
-    ctx.segs.push([]);
+
 }
 normalHandler['z'] = (ctx: CurvCtx, item: any[]) => {
-    // const seg = ctx.segs[ctx.segs.length - 1];
-
-    // seg.isClosed = true;
-
-    // seg.prepoint.x = seg.beginpoint.x;
-    // seg.prepoint.y = seg.beginpoint.y;
-
-    // seg.lastCommand = 'Z';
 
     ctx.lastCommand = { type: "Z" };
-    if (ctx.segs[ctx.segs.length - 1] && ctx.segs[ctx.segs.length - 1].length > 1) {
-        ctx.segs[ctx.segs.length - 1].push(ctx.lastCommand);
+
+    if (ctx.segs.length > 0) {
+        const path = ctx.segs[ctx.segs.length - 1]
+        path.isClose = true;
+
+        ctx.prepoint.x = path.start.x;
+        ctx.prepoint.y = path.start.y;
     }
-    ctx.segs.push([]);
 }

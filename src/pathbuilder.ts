@@ -1,4 +1,5 @@
-import { Path, Path1 } from "./path";
+import { Path } from "./path";
+import { Path1 } from "./path1";
 
 export class PathBuilder {
     _paths: Path1[] = []

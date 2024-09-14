@@ -1,84 +1,8 @@
 import { Grid, SegmentNode } from "./grid";
-import { Line } from "./line";
-import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, Rect, Segment, splits } from "./basic";
-import { Bezier2, Bezier3 } from "./bezier3";
+import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, Rect, reduice_bbox, Segment, splits } from "./basic";
 import { objectId } from "./objectid";
-
-
-
-function reduice_bbox(arr: { bbox(): Rect & { x2: number, y2: number } }[]): Rect & { x2: number, y2: number } {
-    if (arr.length === 0) {
-        return { x: 0, y: 0, w: 0, h: 0, x2: 0, y2: 0 }
-    }
-    let bbox: Rect & { x2: number, y2: number } | undefined
-    for (let i = 0, len = arr.length; i < len; ++i) {
-        const b = arr[i].bbox();
-        if (b.w === 0 && b.h === 0) continue;
-        if (!bbox) {
-            bbox = Object.assign({}, b)
-        } else {
-            bbox.x = Math.min(bbox.x, b.x);
-            bbox.x2 = Math.max(bbox.x2, b.x2);
-            bbox.y = Math.min(bbox.y, b.y);
-            bbox.y2 = Math.max(bbox.y2, b.y2);
-        }
-    }
-    if (bbox) {
-        bbox.w = bbox.x2 - bbox.x;
-        bbox.h = bbox.y2 - bbox.y;
-        return bbox;
-    }
-    return { x: 0, y: 0, w: 0, h: 0, x2: 0, y2: 0 }
-}
-
-export class Path1 {
-    start: Point = { x: 0, y: 0 }
-    isClose: boolean = false
-    cmds: PathCmd[] = []
-    // camp: PathCamp = PathCamp.Subject
-
-    _segments?: Segment[]
-    segments(): Segment[] {
-        if (this._segments) return this._segments;
-        let p = this.start;
-        const ret: Segment[] = this.cmds.map(c => {
-            const _p = p;
-            p = c;
-            switch (c.type) {
-                case 'C': return new Bezier3(_p, { x: c.x1, y: c.y1 }, { x: c.x2, y: c.y2 }, c);
-                case 'L': return new Line(_p, c);
-                case 'Q': return new Bezier2(_p, { x: c.x1, y: c.y1 }, c)
-            }
-        })
-        this._segments = ret;
-        if (!this.isClose || ret.length === 0) return ret;
-
-        if ((!float_eq(this.start.x, p.x) || !float_eq(this.start.y, p.y))) {
-            ret.push(new Line(p, this.start))
-        }
-        else if (this.start.x !== p.x || this.start.y !== p.y) {
-            // fix
-            const s = ret[ret.length - 1];
-            if (s.type === 'C') {
-                const _s = s as Bezier3;
-                ret[ret.length - 1] = new Bezier3(_s.points[0], _s.points[1], _s.points[2], this.start);
-            } else if (s.type === 'L') {
-                const _s = s as Line;
-                ret[ret.length - 1] = new Line(_s.p1, this.start);
-            } else {
-                const _s = s as Bezier2;
-                ret[ret.length - 1] = new Bezier2(_s.points[0], _s.points[1], this.start);
-            }
-        }
-        return ret;
-    }
-    _bbox?: Rect & { x2: number, y2: number }
-    bbox() {
-        if (this._bbox) return this._bbox;
-        this._bbox = reduice_bbox(this.segments())
-        return this._bbox;
-    }
-}
+import { Path1 } from "./path1";
+import { parsePath } from "./pathparser";
 
 
 // 第一级是4*4，子级也都是4*4，最大层级4，最多可将区间分割成65536个区间
@@ -89,6 +13,13 @@ const grid_max_level = 4;
 const grid_need_split = 16;
 
 export class Path {
+
+    static fromSVGString(path: string): Path {
+        const paths = parsePath(path);
+        const p = new Path();
+        p._paths = paths;
+        return p;
+    }
 
     // color = 0
     _paths: Path1[] = []

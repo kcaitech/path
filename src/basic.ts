@@ -235,3 +235,29 @@ export function splits<T extends Segment>(_this: T, ts: number[]): T[] {
     }
     return ret;
 }
+
+
+export function reduice_bbox(arr: { bbox(): Rect & { x2: number, y2: number } }[]): Rect & { x2: number, y2: number } {
+    if (arr.length === 0) {
+        return { x: 0, y: 0, w: 0, h: 0, x2: 0, y2: 0 }
+    }
+    let bbox: Rect & { x2: number, y2: number } | undefined
+    for (let i = 0, len = arr.length; i < len; ++i) {
+        const b = arr[i].bbox();
+        if (b.w === 0 && b.h === 0) continue;
+        if (!bbox) {
+            bbox = Object.assign({}, b)
+        } else {
+            bbox.x = Math.min(bbox.x, b.x);
+            bbox.x2 = Math.max(bbox.x2, b.x2);
+            bbox.y = Math.min(bbox.y, b.y);
+            bbox.y2 = Math.max(bbox.y2, b.y2);
+        }
+    }
+    if (bbox) {
+        bbox.w = bbox.x2 - bbox.x;
+        bbox.h = bbox.y2 - bbox.y;
+        return bbox;
+    }
+    return { x: 0, y: 0, w: 0, h: 0, x2: 0, y2: 0 }
+}
