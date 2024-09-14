@@ -795,4 +795,12 @@ export class Path {
     getCmds() {
         return this._paths;
     }
+
+    get length() {
+        return this._paths.length;
+    }
+
+    toString() {
+        return this.toSVGString();
+    }
 }
