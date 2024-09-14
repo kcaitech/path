@@ -1,3 +1,4 @@
+import { point_eq } from "./basic";
 import { Path } from "./path";
 import { Path1 } from "./path1";
 
@@ -50,7 +51,18 @@ export class PathBuilder {
 
     getPath() {
         const path = new Path();
-        path._paths = this._paths
+        path._paths = this._paths.reduce((p, c) => {
+            if (c.cmds.length > 1) p.push(c); // 过滤掉空路径
+            return p;
+        }, [] as Path1[]).map(p => {
+            if (!p.isClose) {
+                // fix
+                const last = p.cmds[p.cmds.length - 1]
+                if (point_eq(p.start, last)) p.isClose = true;
+            }
+            return p;
+        });
+
         this._paths = []
         return path;
     }

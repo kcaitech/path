@@ -47,7 +47,8 @@ export class Path {
         if (_grid) {
             this._op_fix_grid();
             path._paths.forEach(p => {
-                _grid.adds(p.segments(), p.bbox())
+                // 非close的路径不参与op
+                if (p.isClose) _grid.adds(p.segments(), p.bbox())
             })
         }
 
@@ -77,7 +78,7 @@ export class Path {
         const segset = new Set<number>();
         // 清除多余segmentnode
         this._paths.forEach(p => {
-            p.segments().forEach(s => segset.add(objectId(s)))
+            if (p.isClose) p.segments().forEach(s => segset.add(objectId(s)))
         })
 
         const segset2 = new Set<number>();
@@ -88,7 +89,7 @@ export class Path {
 
         // 加入新增segment
         this._paths.forEach(p => {
-            p.segments().forEach(s => {
+            if (p.isClose) p.segments().forEach(s => {
                 if (!segset2.has(objectId(s))) grid.add(s)
             })
         })
@@ -117,7 +118,7 @@ export class Path {
             this._grid = _grid;
             subjectNodes = []
             this._paths.forEach(p => {
-                subjectNodes.push(..._grid.adds(p.segments(), p.bbox()))
+                if (p.isClose) subjectNodes.push(..._grid.adds(p.segments(), p.bbox()))
             })
         } else {
             this._op_fix_grid();
@@ -128,7 +129,7 @@ export class Path {
         const _grid = this._grid;
 
         path._paths.forEach(p => {
-            clipNodes.push(..._grid.adds(p.segments(), p.bbox(), PathCamp.Clip))
+            if (p.isClose) clipNodes.push(..._grid.adds(p.segments(), p.bbox(), PathCamp.Clip))
         })
 
         return { grid: _grid, subjectNodes, clipNodes }
@@ -552,7 +553,6 @@ export class Path {
                 // 其次内外面与当前路径一致
                 // 
                 // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
-                // 或者优先最大面积？
                 throw new Error();
             }
             return true;

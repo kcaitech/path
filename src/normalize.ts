@@ -2,7 +2,7 @@
 // path -> curvpoint[]
 // ----------------------------------------------------------------------------------
 
-import { PathCmd } from "./basic";
+import { PathCmd, point_eq } from "./basic";
 import { Path1 } from "./path1";
 
 // ----------------------------------------------------------------------------------
@@ -182,7 +182,14 @@ export class Normalizer {
         return this.ctx.segs.reduce((p, c) => {
             if (c.cmds.length > 1) p.push(c); // 过滤掉空路径
             return p;
-        }, [] as Path1[]);
+        }, [] as Path1[]).map(p => {
+            if (!p.isClose) {
+                // fix
+                const last = p.cmds[p.cmds.length - 1]
+                if (point_eq(p.start, last)) p.isClose = true;
+            }
+            return p;
+        });
     }
 }
 
