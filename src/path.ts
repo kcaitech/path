@@ -694,4 +694,93 @@ export class Path {
         return ret;
     }
 
+    // 提供个比transform更高效点的方法
+    translate(x: number, y: number) {
+
+        this._paths.forEach(p => {
+            p._segments = undefined; // 简单重新生成
+            p.start.x += x
+            p.start.y += y
+            if (p._bbox) {
+                p._bbox.x += x
+                p._bbox.y += y
+                p._bbox.x2 += x
+                p._bbox.y2 += y
+            }
+            p.cmds.forEach(c => {
+                switch (c.type) {
+                    case 'L': {
+                        c.x += x
+                        c.y += y
+                        break;
+                    }
+                    case 'C': {
+                        c.x += x
+                        c.y += y
+                        c.x1 += x
+                        c.y1 += y
+                        c.x2 += x
+                        c.y2 += y
+                        break;
+                    }
+                    case 'Q': {
+                        c.x += x
+                        c.y += y
+                        c.x1 += x
+                        c.y1 += y
+                        break;
+                    }
+                }
+            })
+        })
+        if (this._bbox) {
+            this._bbox.x += x
+            this._bbox.y += y
+            this._bbox.x2 += x
+            this._bbox.y2 += y
+        }
+        this._grid = undefined; // 简单重新生成
+    }
+
+    transform(matrix: { computeCoord: (x: number, y: number) => Point }) {
+        this._paths.forEach(p => {
+            p._segments = undefined; // 简单重新生成
+            p._bbox = undefined;
+            const xy = matrix.computeCoord(p.start.x, p.start.y)
+            p.start.x += xy.x
+            p.start.y += xy.y
+            p.cmds.forEach(c => {
+                const xy = matrix.computeCoord(c.x, c.y);
+                switch (c.type) {
+                    case 'L': {
+                        c.x += xy.x
+                        c.y += xy.y
+                        break;
+                    }
+                    case 'C': {
+                        const xy1 = matrix.computeCoord(c.x1, c.y1);
+                        const xy2 = matrix.computeCoord(c.x2, c.y2);
+                        c.x += xy.x
+                        c.y += xy.y
+                        c.x1 += xy1.x
+                        c.y1 += xy1.y
+                        c.x2 += xy2.x
+                        c.y2 += xy2.y
+                        break;
+                    }
+                    case 'Q': {
+                        const xy1 = matrix.computeCoord(c.x1, c.y1);
+                        c.x += xy.x
+                        c.y += xy.y
+                        c.x1 += xy1.x
+                        c.y1 += xy1.y
+                        break;
+                    }
+                }
+            })
+        })
+
+        this._bbox = undefined;
+        this._grid = undefined; // 简单重新生成
+    }
 }

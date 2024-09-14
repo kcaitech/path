@@ -7,6 +7,8 @@ import { PathBuilder } from "./pathbuilder";
 // vscode debug
 // 需要修改tsconfig.json
 // "module": "CommonJS",
+// package.json
+// "type": "commonjs"
 
 
 const builder = new PathBuilder();

@@ -10,6 +10,7 @@ export class Path1 {
     // camp: PathCamp = PathCamp.Subject
 
     _segments?: Segment[]
+    _bbox?: Rect & { x2: number, y2: number }
     segments(): Segment[] {
         if (this._segments) return this._segments;
         let p = this.start;
@@ -44,7 +45,7 @@ export class Path1 {
         }
         return ret;
     }
-    _bbox?: Rect & { x2: number, y2: number }
+
     bbox() {
         if (this._bbox) return this._bbox;
         this._bbox = reduice_bbox(this.segments())
