@@ -11,7 +11,7 @@ const epsilon = float_accuracy6; // todo 误差会放大，尤其当相交点刚
 // 去重
 const accept = (v: { t0: number, t1: number }, i: number, arr: { t0: number, t1: number }[]) => arr.findIndex((v1) => Math.abs(v.t0 - v1.t0) < epsilon && Math.abs(v.t1 - v1.t1) < epsilon) === i;
 
-
+const max_intersect_count = 9; // 二元3次方程最多9个解
 // 有且只有一个交点? 不对。可能有两个交点
 function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number }[] {
 
@@ -77,9 +77,10 @@ function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number
                 ret.push({ t0: t11 + r.t0 * d1, t1: t21 + r.t1 * d2 })
             })
 
-            if (ret.length > 2) { // 异常终止，比如两根线非常接近又不共线时
+            if (ret.length > max_intersect_count) { // 异常终止，比如两根线非常接近又不共线时
                 ret = ret.filter(accept)
-                if (ret.length > 2) return ret; // 不会有超过2个交点的
+                // 如果超出9个交点,考虑这两个bezier非常靠近，几乎共线
+                if (ret.length > max_intersect_count) return ret; // 不会有超过9个交点的
             }
         }
     }

@@ -785,7 +785,14 @@ export class Path {
     }
 
     freeze() {
-        this._paths.forEach(seg => Object.freeze(seg));
+        this._paths.forEach(seg => {
+            seg.cmds.forEach(cmd => Object.freeze(cmd))
+            Object.freeze(seg)
+        });
         Object.freeze(this._paths);
+    }
+
+    getCmds() {
+        return this._paths;
     }
 }
