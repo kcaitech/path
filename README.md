@@ -19,7 +19,7 @@ PathOp实现方案</br>
     union: 遍历完所有未删除的Subject和Clip</br>
     intersection: 遍历完所有未删除的Subject或者Clip</br>
 7. 共线处理</br>
-    difference: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如同时在或者同时不在Subject和Clip中，则标记删除</br>
-    union: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
-    intersection: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
+    difference: Clip均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如同时在或者同时不在Subject和Clip中(可排除当前线段进行判断)，则标记删除</br>
+    union: Clip均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中(可排除当前线段进行判断)，则标记删除</br>
+    intersection: Clip均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中(可排除当前线段进行判断)，则标记删除</br>
     *同时在或者同时不在，是指填充重合的区域的边，反之则是不重合的边。即difference重合部分要去除，union和intersection重合部分要保留</br>

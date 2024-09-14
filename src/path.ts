@@ -339,29 +339,66 @@ export class Path {
             rm(rmoutside, rmoutside)
         }
 
+        // 处理重合路径
+        // 7. 共线处理</br>
+        // difference: Clip均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如同时在或者同时不在Subject和Clip中，则标记删除</br>
+        // union: Clip均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
+        // intersection: Clip均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
+        // *同时在或者同时不在，是指填充重合的区域的边，反之则是不重合的边。即difference重合部分要去除，union和intersection重合部分要保留</br>
+
+        const rmClipCoin = (subjectNodes: SegmentNode[]) => {
+            if (subjectNodes.length === 0) return;
+            for (let i = 0, len = subjectNodes.length; i < len; ++i) {
+                const s = subjectNodes[i];
+                if (s.childs) {
+                    rmClipCoin(s.childs)
+                } else if (s.coincident) {
+                    s.removed = true;
+                    removed.push(s)
+                }
+            }
+        }
+
+
+        const coinjudge1 = (seg: SegmentNode) => { // 同时在
+            return evenodd(seg, PathCamp.Clip) === evenodd(seg, PathCamp.Subject)
+        }
+        const coinjudge2 = (seg: SegmentNode) => { // 不同时在
+            return evenodd(seg, PathCamp.Clip) !== evenodd(seg, PathCamp.Subject)
+        }
+        const rmSubjectCoin = (subjectNodes: SegmentNode[], judge: (seg: SegmentNode) => boolean) => {
+            if (subjectNodes.length === 0) return;
+            for (let i = 0, len = subjectNodes.length; i < len; ++i) {
+                const s = subjectNodes[i];
+                if (s.childs) {
+                    rmSubjectCoin(s.childs, judge)
+                } else if (s.coincident && judge(s)) {
+                    s.removed = true;
+                    removed.push(s)
+                }
+            }
+        }
+
         switch (type) {
             case OpType.Difference:
                 rmDiff();
+                rmSubjectCoin(subjectNodes, coinjudge1);
                 break;
             case OpType.Union:
                 rmUnion();
+                rmSubjectCoin(subjectNodes, coinjudge2);
                 break;
             case OpType.Intersection:
                 rmIntersection();
+                rmSubjectCoin(subjectNodes, coinjudge2);
                 break;
             case OpType.Xor:
                 rmDiff();
+                rmSubjectCoin(subjectNodes, coinjudge1);
                 break;
         }
 
-        // todo 处理重合路径
-        // 7. 共线处理</br>
-        // difference: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如同时在或者同时不在Subject和Clip中，则标记删除</br>
-        // union: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
-        // intersection: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
-        // *同时在或者同时不在，是指填充重合的区域的边，反之则是不重合的边。即difference重合部分要去除，union和intersection重合部分要保留</br>
-
-
+        rmClipCoin(clipNodes);
 
         return removed;
     }
