@@ -20,7 +20,7 @@ export default [{
         clear({
             targets: ['dist']
         }),
-        typescript(),
+        typescript({exclude: ["**/*.test.ts"]}),
         babel({ babelHelpers: 'bundled' }),
         terser(),
     ],
