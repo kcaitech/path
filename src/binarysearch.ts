@@ -18,8 +18,6 @@ function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number
     // 能否再快点？// 判断curve接近线条时用线段交点计算？
     // 当迭代一定层级后使用线段交点逼近？有没有可能平行？
 
-    // todo 异常终止，比如两根线非常接近又不共线时
-
     const box1 = curve1.bbox();
     const box2 = curve2.bbox();
     if (!intersect_rect(curve1.bbox(), curve2.bbox())) return [];
@@ -79,7 +77,7 @@ function _binarySearch(curve1: Bezier, curve2: Bezier): { t0: number, t1: number
                 ret.push({ t0: t11 + r.t0 * d1, t1: t21 + r.t1 * d2 })
             })
 
-            if (ret.length > 2) { // ?
+            if (ret.length > 2) { // 异常终止，比如两根线非常接近又不共线时
                 ret = ret.filter(accept)
                 if (ret.length > 2) return ret; // 不会有超过2个交点的
             }

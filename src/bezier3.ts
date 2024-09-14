@@ -738,7 +738,7 @@ export class Bezier3 extends Bezier {
             // const extrema = this.extrema();
             return new Line(this.points[0], this.points[this.points.length - 1]).intersect(line);
         }
-        // todo 不对
+
         const alignpoints = alignX(this.points, line);
         const p0 = alignpoints[0];
         const p1 = alignpoints[1];

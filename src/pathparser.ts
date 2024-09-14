@@ -31,7 +31,7 @@ export function parsePath(pathString: string): Path1[] {
                 break;
             }
         }
-        return "";// todo
+        return "";
     });
 
     return nor.getPaths();

@@ -353,6 +353,16 @@ export class Path {
                 rmDiff();
                 break;
         }
+
+        // todo 处理重合路径
+        // 7. 共线处理</br>
+        // difference: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如同时在或者同时不在Subject和Clip中，则标记删除</br>
+        // union: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
+        // intersection: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
+        // *同时在或者同时不在，是指填充重合的区域的边，反之则是不重合的边。即difference重合部分要去除，union和intersection重合部分要保留</br>
+
+
+
         return removed;
     }
 
@@ -441,6 +451,12 @@ export class Path {
                 cursegments = [];
             }
         }
+
+        // 根据op重建路径
+        // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
+        // difference: 遍历完所有未删除的Subject和Clip</br>
+        // union: 遍历完所有未删除的Subject和Clip</br>
+        // intersection: 遍历完所有未删除的Subject和Clip</br>
         rebuild(subjectNodes)
         rebuild(clipNodes)
 
@@ -450,7 +466,6 @@ export class Path {
         const usedsegments = new Set<number>();
 
         const reverse = (segs: Segment[]) => {
-            // todo 记录被reverse的seg，修复grid
             return segs.reverse().map(s => s.reverse()) // 原有的seg被替換，grid還能用不？
         }
 
@@ -501,7 +516,6 @@ export class Path {
                 // 
                 // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
                 // 或者优先最大面积？
-                // todo
                 throw new Error();
             }
             return true;
@@ -581,20 +595,6 @@ export class Path {
         const removed: SegmentNode[] = this._op_rm_segments(type, subjectNodes, clipNodes, _grid);
 
         const { closedsegments, joinedsegments } = this._op_rebuild_paths(subjectNodes, clipNodes);
-
-        // todo 处理重合路径
-        // 7. 共线处理</br>
-        // difference: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如同时在或者同时不在Subject和Clip中，则标记删除</br>
-        // union: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
-        // intersection: Subject均标记删除；Subject的线段，以此线段中一点作一射线，判断此点如【不】同时在Subject和Clip中，则标记删除</br>
-        // *同时在或者同时不在，是指填充重合的区域的边，反之则是不重合的边。即difference重合部分要去除，union和intersection重合部分要保留</br>
-
-        // todo
-        // 根据op重建路径
-        // 在一个顶点有多条路径时，优先选择往内拐的（最小面积），最后成了各个独立的path</br>
-        // difference: 遍历完所有未删除的Subject和Clip</br>
-        // union: 遍历完所有未删除的Subject和Clip</br>
-        // intersection: 遍历完所有未删除的Subject和Clip</br>
 
         // 生成路徑
         // 生成新_paths
