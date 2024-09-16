@@ -674,7 +674,14 @@ export class Path {
 
     clone() {
         const path = new Path()
-        path._paths = this._paths;
+        path._paths = this._paths.map(p => {
+            const _n = new Path1();
+            _n.start.x = p.start.x
+            _n.start.y = p.start.y
+            _n.isClose = p.isClose
+            _n.cmds = p.cmds.map(cmd => Object.assign({}, cmd))
+            return _n
+        });
         return path;
     }
 
@@ -787,7 +794,7 @@ export class Path {
     freeze() {
         this._paths.forEach(seg => {
             seg.cmds.forEach(cmd => Object.freeze(cmd))
-            Object.freeze(seg)
+            // Object.freeze(seg) // _bbox这些不能freeze
         });
         Object.freeze(this._paths);
     }
