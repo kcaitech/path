@@ -795,6 +795,8 @@ export class Path {
     freeze() {
         this._paths.forEach(seg => {
             seg.cmds.forEach(cmd => Object.freeze(cmd))
+            Object.freeze(seg.start)
+            // isClose
             // Object.freeze(seg) // _bbox这些不能freeze
         });
         Object.freeze(this._paths);
