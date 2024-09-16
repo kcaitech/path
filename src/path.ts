@@ -126,11 +126,12 @@ const joinsegments = (brokensegments: Map<number, Map<number, Segment[][]>>) => 
 
 export class Path {
 
+    constructor(path?: string) {
+        if (path) this._paths = parsePath(path);
+    }
+
     static fromSVGString(path: string): Path {
-        const paths = parsePath(path);
-        const p = new Path();
-        p._paths = paths;
-        return p;
+        return new Path(path);
     }
 
     // color = 0
