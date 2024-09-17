@@ -1,5 +1,5 @@
 import { Grid, SegmentNode } from "./grid";
-import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, Point, point_eq, point_eq6, Rect, reduice_bbox, Segment, splits } from "./basic";
+import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, Rect, reduice_bbox, Segment, splits } from "./basic";
 import { objectId } from "./objectid";
 import { Path1 } from "./path1";
 import { parsePath } from "./pathparser";
@@ -714,45 +714,49 @@ export class Path {
         return ret;
     }
 
-    // 提供个比transform更高效点的方法
-    translate(x: number, y: number) {
-
+    private _transform(matrix: { computeCoord: (x: number, y: number) => Point }) {
+        const transformCmd = (c: PathCmd) => {
+            const xy = matrix.computeCoord(c.x, c.y);
+            switch (c.type) {
+                case 'L': {
+                    c.x = xy.x
+                    c.y = xy.y
+                    break;
+                }
+                case 'C': {
+                    const xy1 = matrix.computeCoord(c.x1, c.y1);
+                    const xy2 = matrix.computeCoord(c.x2, c.y2);
+                    c.x = xy.x
+                    c.y = xy.y
+                    c.x1 = xy1.x
+                    c.y1 = xy1.y
+                    c.x2 = xy2.x
+                    c.y2 = xy2.y
+                    break;
+                }
+                case 'Q': {
+                    const xy1 = matrix.computeCoord(c.x1, c.y1);
+                    c.x = xy.x
+                    c.y = xy.y
+                    c.x1 = xy1.x
+                    c.y1 = xy1.y
+                    break;
+                }
+            }
+        }
         this._paths.forEach(p => {
             p._segments = undefined; // 简单重新生成
-            p.start.x += x
-            p.start.y += y
-            if (p._bbox) {
-                p._bbox.x += x
-                p._bbox.y += y
-                p._bbox.x2 += x
-                p._bbox.y2 += y
-            }
-            p.cmds.forEach(c => {
-                switch (c.type) {
-                    case 'L': {
-                        c.x += x
-                        c.y += y
-                        break;
-                    }
-                    case 'C': {
-                        c.x += x
-                        c.y += y
-                        c.x1 += x
-                        c.y1 += y
-                        c.x2 += x
-                        c.y2 += y
-                        break;
-                    }
-                    case 'Q': {
-                        c.x += x
-                        c.y += y
-                        c.x1 += x
-                        c.y1 += y
-                        break;
-                    }
-                }
-            })
+            p._bbox = undefined;
+            const xy = matrix.computeCoord(p.start.x, p.start.y)
+            p.start.x = xy.x
+            p.start.y = xy.y
+            p.cmds.forEach(transformCmd)
         })
+    }
+
+    // 提供个比transform更高效点的方法
+    translate(x: number, y: number) {
+        this._transform({ computeCoord: (_x: number, _y: number) => ({ x: _x + x, y: _y + y }) })
         if (this._bbox) {
             this._bbox.x += x
             this._bbox.y += y
@@ -763,43 +767,7 @@ export class Path {
     }
 
     transform(matrix: { computeCoord: (x: number, y: number) => Point }) {
-        this._paths.forEach(p => {
-            p._segments = undefined; // 简单重新生成
-            p._bbox = undefined;
-            const xy = matrix.computeCoord(p.start.x, p.start.y)
-            p.start.x += xy.x
-            p.start.y += xy.y
-            p.cmds.forEach(c => {
-                const xy = matrix.computeCoord(c.x, c.y);
-                switch (c.type) {
-                    case 'L': {
-                        c.x += xy.x
-                        c.y += xy.y
-                        break;
-                    }
-                    case 'C': {
-                        const xy1 = matrix.computeCoord(c.x1, c.y1);
-                        const xy2 = matrix.computeCoord(c.x2, c.y2);
-                        c.x += xy.x
-                        c.y += xy.y
-                        c.x1 += xy1.x
-                        c.y1 += xy1.y
-                        c.x2 += xy2.x
-                        c.y2 += xy2.y
-                        break;
-                    }
-                    case 'Q': {
-                        const xy1 = matrix.computeCoord(c.x1, c.y1);
-                        c.x += xy.x
-                        c.y += xy.y
-                        c.x1 += xy1.x
-                        c.y1 += xy1.y
-                        break;
-                    }
-                }
-            })
-        })
-
+        this._transform(matrix)
         this._bbox = undefined;
         this._grid = undefined; // 简单重新生成
     }
