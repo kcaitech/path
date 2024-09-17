@@ -285,7 +285,7 @@ export class Path {
 
 
         const splitenode = (node: SegmentNode, ts: number[]) => {
-            // ts = ts.filter((t) => !(float_eq(0, t) && float_eq(1, t))).sort((a, b) => a - b)
+            ts = ts.filter((t) => !(float_eq(0, t) || float_eq(1, t))).sort((a, b) => a - b)
             if (ts.length === 0) return;
             if (!node.childs) {
                 const childs = splits(node.seg, ts);
@@ -328,13 +328,16 @@ export class Path {
         }
 
         const markstate = (node: SegmentNode, t0: number, t1: number, state: 'coincident' | 'removed') => {
-            const ret: SegmentNode[] = []
             // if (ts.length === 0) {
             //     node[state] = true;
             //     ret.push(node)
             //     return ret;
             // }
-            if (!node.childs) throw new Error()
+            if (!node.childs) {
+                node[state] = true;
+                return [node];
+            }
+            const ret: SegmentNode[] = []
 
             if (t0 < t1) {
                 const t = t0;
@@ -351,7 +354,7 @@ export class Path {
             return ret;
         }
 
-        const coincidents: SegmentNode[] = []
+        // const coincidents: SegmentNode[] = []
 
         // 断开重合点、相交点
         for (let i = 0, len = intersects.length; i < len; ++i) {
@@ -364,13 +367,15 @@ export class Path {
                 const coincident = clip.coincident(subject);
                 if (coincident) {
                     const { t0, t1, t2, t3 } = coincident;
-                    const clipsplit = [t0, t1].filter((t) => !(float_eq(0, t) && float_eq(1, t))).sort((a, b) => a - b)
-                    const subjectsplit = [t2, t3].filter((t) => !(float_eq(0, t) && float_eq(1, t))).sort((a, b) => a - b)
+                    const clipsplit = [t0, t1] //.filter((t) => !(float_eq(0, t) || float_eq(1, t))).sort((a, b) => a - b)
+                    const subjectsplit = [t2, t3] //.filter((t) => !(float_eq(0, t) || float_eq(1, t))).sort((a, b) => a - b)
                     splitenode(clipNode, clipsplit);
                     splitenode(v, subjectsplit);
 
-                    coincidents.push(...markstate(clipNode, t0, t1, "coincident"))
-                    coincidents.push(...markstate(v, t2, t3, "coincident"))
+                    // coincidents.push(...markstate(clipNode, t0, t1, "coincident"))
+                    // coincidents.push(...markstate(v, t2, t3, "coincident"))
+                    markstate(clipNode, t0, t1, "coincident")
+                    markstate(v, t2, t3, "coincident")
                     continue;
                 }
 
@@ -545,10 +550,17 @@ export class Path {
         const closedsegments: Segment[][] = [];
         let cursegments: Segment[] = []
 
+        const hasremoved = (nodes: SegmentNode[]) => {
+            for (let i = 0, len = nodes.length; i < len; ++i) {
+                if (nodes[i].removed) return true;
+            }
+            return false;
+        }
+
         const rebuild1 = (nodes: SegmentNode[]) => {
             for (let i = 0, len = nodes.length; i < len; ++i) {
                 const n = nodes[i];
-                if (n.childs) {
+                if (n.childs && hasremoved(n.childs)) {
                     rebuild1(n.childs)
                     continue;
                 }
