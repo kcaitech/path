@@ -179,7 +179,7 @@ abstract class Bezier implements Segment {
         if (extrema.length > 0) {
             this._discrete = nodes;
         } else {
-            this._discrete = nodes[0].childs!
+            this._discrete = nodes[0].childs || nodes; // 至少要有一个
             this._discrete.forEach(n => n.parent = undefined)
         }
 
