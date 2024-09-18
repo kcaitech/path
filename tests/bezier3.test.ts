@@ -122,4 +122,61 @@ describe(`bezier3`, () => {
         // console.log(pc1, pc2)
         expect(point_eq(pc1, pc2)).toBe(true);
     })
+
+    test('intersect 3', () => {
+        const p1 = [
+            {
+                x: 14.64466094067263,
+                y: 85.35533905932738,
+            },
+            {
+                x: 34.153198846825276,
+                y: 104.86387696548002,
+            },
+            {
+                x: 65.84680115317474,
+                y: 104.86387696548002,
+            },
+            {
+                x: 85.35533905932738,
+                y: 85.35533905932738,
+            },
+        ]
+        const p2 = [
+            {
+                x: 0,
+                y: 50,
+            },
+            {
+                x: 0,
+                y: 77.58923888895069,
+            },
+            {
+                x: 22.4107611110493,
+                y: 100,
+            },
+            {
+                x: 50,
+                y: 100,
+            },
+        ]
+        const c1 = new Bezier3(p1[0], p1[1], p1[2], p1[3])
+        const c2 = new Bezier3(p2[0], p2[1], p2[2], p2[3])
+
+        const intersect = c1.intersect(c2);
+
+        expect(intersect.length).toBe(1)
+        expect(intersect[0].type).toBe('intersect')
+        // expect(float_eq(intersect[0].t0, 0.3524198532104492)).toBe(true)
+        // expect(float_eq(intersect[0].t1, 0.09022116661071777)).toBe(true)
+
+        const { t0, t1 } = intersect[0];
+        const pc1 = c1.pointAt(t0);
+        const pc2 = c2.pointAt(t1);
+
+        // console.log(pc1, pc2)
+        expect(point_eq(pc1, pc2)).toBe(true);
+
+
+    })
 })
