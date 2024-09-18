@@ -1,4 +1,4 @@
-import { float_eq, PathCmd, Point, Rect, reduice_bbox, Segment } from "./basic";
+import { float_eq, PathCmd, Point, point_eq, Rect, reduice_bbox, Segment } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 import { Line } from "./line";
 
@@ -14,15 +14,25 @@ export class Path1 {
     segments(): Segment[] {
         if (this._segments) return this._segments;
         let p = this.start;
-        const ret: Segment[] = this.cmds.map(c => {
+        const ret: Segment[] = this.cmds.reduce((r, c) => {
             const _p = p;
             p = c;
             switch (c.type) {
-                case 'C': return new Bezier3(_p, { x: c.x1, y: c.y1 }, { x: c.x2, y: c.y2 }, c);
-                case 'L': return new Line(_p, c);
-                case 'Q': return new Bezier2(_p, { x: c.x1, y: c.y1 }, c)
+                case 'C': {
+                    r.push(new Bezier3(_p, { x: c.x1, y: c.y1 }, { x: c.x2, y: c.y2 }, c))
+                    break;
+                }
+                case 'L': {
+                    if (!point_eq(_p, c)) r.push(new Line(_p, c)) // 点可以忽略掉
+                    break;
+                }
+                case 'Q': {
+                    r.push(new Bezier2(_p, { x: c.x1, y: c.y1 }, c))
+                    break;
+                }
             }
-        })
+            return r;
+        }, [] as Segment[])
         this._segments = ret;
         if (!this.isClose || ret.length === 0) return ret;
 
