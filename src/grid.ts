@@ -15,12 +15,12 @@ export interface SegmentNode {
     coincident?: boolean // 不同camp重合的
 }
 
-const clampsidep = {
-    left: (p: Point, grid: Grid) => { return { x: Math.min(p.x, grid.x + grid.w), y: p.y } },
-    top: (p: Point, grid: Grid) => { return { x: p.x, y: Math.min(p.y, grid.y + grid.h) } },
-    right: (p: Point, grid: Grid) => { return { x: Math.max(p.x, grid.x), y: p.y } },
-    bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y) } }
-}
+// const clampsidep = {
+//     left: (p: Point, grid: Grid) => { return { x: Math.min(p.x, grid.x + grid.w), y: p.y } },
+//     top: (p: Point, grid: Grid) => { return { x: p.x, y: Math.min(p.y, grid.y + grid.h) } },
+//     right: (p: Point, grid: Grid) => { return { x: Math.max(p.x, grid.x), y: p.y } },
+//     bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y) } }
+// }
 
 const rayend = {
     left: (p: Point, grid: Grid) => { return { x: Math.min(p.x, grid.x - 1), y: p.y } },
@@ -29,13 +29,13 @@ const rayend = {
     bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y + grid.h + 1) } }
 }
 
-const _evenodd = (grid0: Grid, grid: Grid, camp: PathCamp, p: Point, ray: Line, side: 'left' | 'top' | 'right' | 'bottom', color: number): number => {
+const _evenodd = (grid: Grid, camp: PathCamp, ray: Line, side: 'left' | 'top' | 'right' | 'bottom', color: number): number => {
     let count = 0;
     if (grid.items) {
-        const iter = grid.iterFrom(p);
+        // const p = clampsidep[side](ray.p1, grid);
+        const iter = grid.iterFrom(ray.p1);
         while (iter.item) {
-            const _p = clampsidep[side](p, iter.item);
-            count += _evenodd(grid0, iter.item, camp, _p, ray, side, color);
+            count += _evenodd(iter.item, camp, ray, side, color);
             iter[side]();
         }
         return count;
@@ -194,7 +194,7 @@ export class Grid implements Rect {
 
         const rayendp = rayend[side](p, this);
         const ray = new Line(p, rayendp)
-        const count = _evenodd(this, this, camp, p, ray, side, ++this.color)
+        const count = _evenodd(this, camp, ray, side, ++this.color)
 
         return count % 2 === 1
     }
