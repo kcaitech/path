@@ -2,6 +2,7 @@ import { OpType } from "./basic";
 import { Bezier3 } from "./bezier3";
 import { utils } from "./bezierjs/src/utils";
 import { Line } from "./line";
+import { Path } from "./path";
 import { PathBuilder } from "./pathbuilder";
 
 // vscode debug
@@ -10,81 +11,50 @@ import { PathBuilder } from "./pathbuilder";
 // 然后以dist中的js文件启动
 
 
-const builder = new PathBuilder();
-builder.moveTo(50, 100)
-builder.cubicTo(100, 50, 77.58923888895069, 100, 100, 77.58923888895069)
-builder.cubicTo(50, 0, 100, 22.4107611110493, 77.58923888895069, 0)
-builder.cubicTo(0, 50, 22.4107611110493, 0, 0, 22.4107611110493)
-builder.cubicTo(50, 100, 0, 77.58923888895069, 22.4107611110493, 100)
-builder.close()
+// const builder = new PathBuilder();
+// builder.moveTo(50, 100)
+// builder.cubicTo(100, 50, 77.58923888895069, 100, 100, 77.58923888895069)
+// builder.cubicTo(50, 0, 100, 22.4107611110493, 77.58923888895069, 0)
+// builder.cubicTo(0, 50, 22.4107611110493, 0, 0, 22.4107611110493)
+// builder.cubicTo(50, 100, 0, 77.58923888895069, 22.4107611110493, 100)
+// builder.close()
 
-const path = builder.getPath();
-console.log(path.toSVGString())
+// const path = builder.getPath();
+// console.log(path.toSVGString())
 
-builder.moveTo(50, 100)
-builder.cubicTo(100, 50, 77.58923888895069, 100, 100, 77.58923888895069)
-builder.cubicTo(50, 0, 100, 22.4107611110493, 77.58923888895069, 0)
-builder.cubicTo(0, 50, 22.4107611110493, 0, 0, 22.4107611110493)
-builder.cubicTo(50, 100, 0, 77.58923888895069, 22.4107611110493, 100)
-builder.close()
+// builder.moveTo(50, 100)
+// builder.cubicTo(100, 50, 77.58923888895069, 100, 100, 77.58923888895069)
+// builder.cubicTo(50, 0, 100, 22.4107611110493, 77.58923888895069, 0)
+// builder.cubicTo(0, 50, 22.4107611110493, 0, 0, 22.4107611110493)
+// builder.cubicTo(50, 100, 0, 77.58923888895069, 22.4107611110493, 100)
+// builder.close()
 
-const path1 = builder.getPath();
+// const path1 = builder.getPath();
 
-// 顺时针旋转45度
-path1.translate(-50, -50)
-const angle = Math.PI / 4;
-const cos = Math.cos(angle)
-const sin = Math.sin(angle)
-path1.transform({
-    computeCoord(x, y) {
-        return { x: x * cos - y * sin, y: x * sin + y * cos }
-    },
-})
-path1.translate(50, 50)
-
-console.log(path1.toSVGString())
-
-path.op(path1, OpType.Union);
-console.log(path.toSVGString())
-
-
-// const p1 = [
-//     {
-//         x: 14.64466094067263,
-//         y: 85.35533905932738,
+// // 顺时针旋转45度
+// path1.translate(-50, -50)
+// const angle = Math.PI / 4;
+// const cos = Math.cos(angle)
+// const sin = Math.sin(angle)
+// path1.transform({
+//     computeCoord(x, y) {
+//         return { x: x * cos - y * sin, y: x * sin + y * cos }
 //     },
-//     {
-//         x: 34.153198846825276,
-//         y: 104.86387696548002,
-//     },
-//     {
-//         x: 65.84680115317474,
-//         y: 104.86387696548002,
-//     },
-//     {
-//         x: 85.35533905932738,
-//         y: 85.35533905932738,
-//     },
-// ]
-// const p2 = [
-//     {
-//         x: 0,
-//         y: 50,
-//     },
-//     {
-//         x: 0,
-//         y: 77.58923888895069,
-//     },
-//     {
-//         x: 22.4107611110493,
-//         y: 100,
-//     },
-//     {
-//         x: 50,
-//         y: 100,
-//     },
-// ]
-// const c1 = new Bezier3(p1[0], p1[1], p1[2], p1[3])
-// const c2 = new Bezier3(p2[0], p2[1], p2[2], p2[3])
+// })
+// path1.translate(50, 50)
 
-// const intersect = c1.intersect(c2);
+// console.log(path1.toSVGString())
+
+// path.op(path1, OpType.Union);
+// console.log(path.toSVGString())
+
+
+
+// const path0 = new Path('M151 93L146 87L156 87L151 93Z')
+// const path1 = new Path('M170 0L1.9999999999999716 0C0.8954305003383922 0 -2.842170943040401e-14 0.8954305003384138 -2.842170943040401e-14 2.0000000000000004L-2.842170943040401e-14 85.00000000000058C-2.842170943040401e-14 86.10456949966218 0.8954305003383922 87.00000000000058 1.9999999999999716 87.00000000000058L170 87.00000000000058C171.10456949966158 87.00000000000058 172 86.10456949966218 172 85.00000000000058L172 2.0000000000000004C172 0.8954305003384138 171.10456949966158 0 170 0Z')
+// path0.op(path1, OpType.Union)
+
+
+
+const path0 = new Path('M0.155099025676379 3.8812735568349095L0.155099025676379 3.8812735568349095C-0.03728889027369808 4.054500414430392 -0.052821997130917064 4.350889749558076 0.12040486046456522 4.543277665508153L2.3286183487905014 6.995747201057565C2.5018452063859837 7.188135117007643 2.7982345415136676 7.203668223864861 2.9906224574637443 7.030441366269379L2.9906224574637443 7.030441366269379C3.183010373413822 6.857214508673897 3.1985434802710406 6.560825173546213 3.0253166226755583 6.368437257596136L0.8171031343496223 3.9159677220467235C0.64387627675414 3.7235798060966463 0.3474869416264561 3.708046699239427 0.155099025676379 3.8812735568349095Z')
+path0.bbox();

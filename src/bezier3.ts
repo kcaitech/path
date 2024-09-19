@@ -352,13 +352,13 @@ function searchCoincident(curve1: Bezier, curve2: Bezier): { t0: number, t1: num
             return possible;
         }
 
-        let t0, t1, t2, t3
+        // let t0, t1, t2, t3
 
-        t0 = c1fromOnC2.length > 0 ? [0] : (c2fromOnC1.length > 0 ? c2fromOnC1 : c2toOnC1)
-        t1 = c1fromOnC2.length > 0 ? (c2fromOnC1.length > 0 ? c2fromOnC1 : c2toOnC1) : [1]
+        const t0 = c1fromOnC2.length > 0 ? [0] : (c2fromOnC1.length > 0 ? c2fromOnC1 : c2toOnC1)
+        const t1 = c1fromOnC2.length > 0 ? (c2fromOnC1.length > 0 ? c2fromOnC1 : c2toOnC1) : [1]
 
-        t2 = c2fromOnC1.length > 0 ? [0] : (c1fromOnC2.length > 0 ? c1fromOnC2 : c1toOnC2)
-        t3 = c2fromOnC1.length > 0 ? (c1fromOnC2.length > 0 ? c1fromOnC2 : c1toOnC2) : [1];
+        const t2 = c2fromOnC1.length > 0 ? [0] : (c1fromOnC2.length > 0 ? c1fromOnC2 : c1toOnC2)
+        const t3 = c2fromOnC1.length > 0 ? (c1fromOnC2.length > 0 ? c1fromOnC2 : c1toOnC2) : [1];
 
         t0.forEach(_t0 => {
             t1.forEach(_t1 => {
