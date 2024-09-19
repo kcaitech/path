@@ -27,8 +27,8 @@ const isclosed = (cursegments: Segment[]) => {
 }
 
 const addbrokensegments = (p: Point, segments: Segment[], brokensegments: Map<number, Map<number, Segment[][]>>) => {
-    const px = Math.round(p.x / float_accuracy6);
-    const py = Math.round(p.y / float_accuracy6);
+    const px = Math.floor(p.x / float_accuracy6);
+    const py = Math.floor(p.y / float_accuracy6);
     let x = brokensegments.get(px)
     if (!x) {
         x = new Map<number, Segment[][]>()
@@ -54,10 +54,10 @@ const joinsegments = (brokensegments: Map<number, Map<number, Segment[][]>>) => 
     }
 
     const getjoinsegs = (to: Point) => {
-        const x = brokensegments.get(Math.round(to.x / float_accuracy6))
+        const x = brokensegments.get(Math.floor(to.x / float_accuracy6))
         if (!x) return;
 
-        const y = x.get(Math.round(to.y / float_accuracy6))
+        const y = x.get(Math.floor(to.y / float_accuracy6))
         if (!y || y.length === 0) return;
 
         const pending = y.filter(s => !usedsegments.has(objectId(s)))

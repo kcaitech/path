@@ -103,7 +103,7 @@ export class Grid implements Rect {
     }
 
     rm(data: SegmentNode) {
-        if (this.dataMap.has(objectId(data))) return;
+        if (!this.dataMap.has(objectId(data))) return;
 
         const idx = this.data.indexOf(data);
         this.data.splice(idx, 1);
