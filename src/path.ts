@@ -633,8 +633,8 @@ export class Path {
             path._segments = []
             for (let j = 0, len = segs.length; j < len; ++j) {
                 const s = segs[j];
-                if (j === len - 1 && s.type === 'L') break;
                 path._segments.push(s);
+                if (j === len - 1 && s.type === 'L') break;
                 path.cmds.push(s.toCmd())
             }
             this._paths.push(path)
@@ -678,8 +678,8 @@ export class Path {
             path._segments = []
             for (let j = 0, len = segs.length; j < len; ++j) {
                 const s = segs[j];
-                if (isClose && j === len - 1 && s.type === 'L') break;
                 path._segments.push(s);
+                if (isClose && j === len - 1 && s.type === 'L') break;
                 path.cmds.push(s.toCmd())
             }
             this._paths.push(path)

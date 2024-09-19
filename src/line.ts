@@ -70,7 +70,7 @@ export class Line implements Segment {
         const p1 = this.pointAt(t0);
         const p2 = this.pointAt(t1);
 
-        return contains_rect(rect, { x: Math.min(p1.x, p2.x), y: Math.min(p1.y, p2.y), w: Math.abs(p1.x - p2.x), h: Math.abs(p1.y - p2.y) })
+        return intersect_range(rect.y, rect.y + rect.h, Math.min(p1.y, p2.y), Math.max(p1.y, p2.y))
     }
 
     get type(): "L" {
