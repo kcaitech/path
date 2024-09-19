@@ -29,29 +29,24 @@ const rayend = {
     bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y + grid.h + 1) } }
 }
 
-const _evenodd = (grid0: Grid, grid: Grid, camp: PathCamp, p: Point, p0: Point, side: 'left' | 'top' | 'right' | 'bottom', color: number): number => {
+const _evenodd = (grid0: Grid, grid: Grid, camp: PathCamp, p: Point, ray: Line, side: 'left' | 'top' | 'right' | 'bottom', color: number): number => {
     let count = 0;
     if (grid.items) {
         const iter = grid.iterFrom(p);
         while (iter.item) {
             const _p = clampsidep[side](p, iter.item);
-            count += _evenodd(grid0, iter.item, camp, _p, p0, side, color);
+            count += _evenodd(grid0, iter.item, camp, _p, ray, side, color);
             iter[side]();
         }
         return count;
     }
 
-    const rayendp = rayend[side](p, grid0);
-    const ray = new Line(p, rayendp)
-
-
     const pending = grid.data.filter(d => d.camp === camp && d.color !== color);
-
     pending.forEach(d => {
         d.color = color;
 
         let s = d.seg;
-        if (s.type !== 'L' && !rect_contains_point(s.bbox(), p0)) { // 不包含点时，只要判断下segment的起点跟终点是否与射线相交
+        if (s.type !== 'L' && !rect_contains_point(s.bbox(), ray.p1)) { // 不包含点时，只要判断下segment的起点跟终点是否与射线相交
             const p1 = s.from;
             const p2 = s.to;
             s = new Line(p1, p2);
@@ -107,6 +102,7 @@ export class Grid implements Rect {
 
         const idx = this.data.indexOf(data);
         this.data.splice(idx, 1);
+        this.dataMap.delete(objectId(data));
 
         if (!this.items) return;
 
@@ -196,7 +192,9 @@ export class Grid implements Rect {
             return (c.d < p.d) ? c : p;
         }, { side: 'bottom' as 'bottom', d: this.y + this.h - p.y }).side;
 
-        const count = _evenodd(this, this, camp, p, p, side, ++this.color)
+        const rayendp = rayend[side](p, this);
+        const ray = new Line(p, rayendp)
+        const count = _evenodd(this, this, camp, p, ray, side, ++this.color)
 
         return count % 2 === 1
     }

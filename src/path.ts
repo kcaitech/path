@@ -42,6 +42,9 @@ const addbrokensegments = (p: Point, segments: Segment[], brokensegments: Map<nu
     y.push(segments);
 }
 
+const reverse = (segs: Segment[]) => {
+    return segs.reverse().map(s => s.reverse()) // 原有的seg被替換，grid還能用不？
+}
 const joinsegments = (brokensegments: Map<number, Map<number, Segment[][]>>) => {
     // join brokensegments
     const closedsegments: Segment[][] = [];
@@ -49,9 +52,6 @@ const joinsegments = (brokensegments: Map<number, Map<number, Segment[][]>>) => 
     let curjoin: Segment[] = [];
     const usedsegments = new Set<number>();
 
-    const reverse = (segs: Segment[]) => {
-        return segs.reverse().map(s => s.reverse()) // 原有的seg被替換，grid還能用不？
-    }
 
     const getjoinsegs = (to: Point) => {
         const x = brokensegments.get(Math.floor(to.x / float_accuracy6))
@@ -639,18 +639,46 @@ export class Path {
             }
             this._paths.push(path)
         }
+        // 因计算精度，map有key值四舍五入后不一样，再次尝试拼接joinedsegments
+        for (let i = 0; i < joinedsegments.length; ++i) {
+            const segs = joinedsegments[i];
+            const from = segs[0].from;
+            const to = segs[segs.length - 1].to;
+            for (let j = i + 1; j < joinedsegments.length;) {
+                const segs1 = joinedsegments[j];
+                const from1 = segs1[0].from;
+                const to1 = segs1[segs1.length - 1].to;
+                if (point_eq6(to, from1)) {
+                    segs.push(...segs1);
+                    joinedsegments.splice(j, 1);
+                } else if (point_eq6(to, to1)) {
+                    segs.push(...reverse(segs1));
+                    joinedsegments.splice(j, 1);
+                } else if (point_eq6(from, from1)) {
+                    segs.unshift(...reverse(segs1));
+                    joinedsegments.splice(j, 1);
+                } else if (point_eq6(from, to1)) {
+                    segs.unshift(...segs1);
+                    joinedsegments.splice(j, 1);
+                } else {
+                    ++j;
+                }
+            }
+        }
         // joinedsegments
         for (let i = 0, len = joinedsegments.length; i < len; ++i) {
             const segs = joinedsegments[i];
             const from = segs[0].from;
+            const to = segs[segs.length - 1].to;
+            const isClose = point_eq6(from, to)
             const path = new Path1();
             path.start.x = from.x;
             path.start.y = from.y;
-            // path.isClose = true;
+            if (isClose) path.isClose = true;
             path._segments = []
             for (let j = 0, len = segs.length; j < len; ++j) {
                 const s = segs[j];
-                // if (j === len - 1 && s.type === 'L') break;
+                if (isClose && j === len - 1 && s.type === 'L') break;
                 path._segments.push(s);
                 path.cmds.push(s.toCmd())
             }
