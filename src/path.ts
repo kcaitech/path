@@ -640,30 +640,31 @@ export class Path {
             this._paths.push(path)
         }
         // 因计算精度，map有key值四舍五入后不一样，再次尝试拼接joinedsegments
-        for (let i = 0; i < joinedsegments.length; ++i) {
+        for (let i = 0; i < joinedsegments.length;) {
             const segs = joinedsegments[i];
             const from = segs[0].from;
             const to = segs[segs.length - 1].to;
-            for (let j = i + 1; j < joinedsegments.length;) {
+            let hasMerge = false;
+            for (let j = i + 1, len = joinedsegments.length; j < len; ++j) {
                 const segs1 = joinedsegments[j];
                 const from1 = segs1[0].from;
                 const to1 = segs1[segs1.length - 1].to;
                 if (point_eq6(to, from1)) {
                     segs.push(...segs1);
-                    joinedsegments.splice(j, 1);
                 } else if (point_eq6(to, to1)) {
                     segs.push(...reverse(segs1));
-                    joinedsegments.splice(j, 1);
                 } else if (point_eq6(from, from1)) {
                     segs.unshift(...reverse(segs1));
-                    joinedsegments.splice(j, 1);
                 } else if (point_eq6(from, to1)) {
                     segs.unshift(...segs1);
-                    joinedsegments.splice(j, 1);
                 } else {
-                    ++j;
+                    continue;
                 }
+                joinedsegments.splice(j, 1);
+                hasMerge = true
+                break;
             }
+            if (!hasMerge) ++i; // 有merge时需要重新判断
         }
         // joinedsegments
         for (let i = 0, len = joinedsegments.length; i < len; ++i) {
