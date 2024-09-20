@@ -1,8 +1,9 @@
 import { contains_point, contains_rect, float_accuracy, intersect_range, intersect_rect, PathCmd, Point, Rect, Segment } from "./basic";
 
 export class Line implements Segment {
-    p1: Point
-    p2: Point
+    // p1: Point
+    // p2: Point
+    points: Point[]
     _bbox?: Rect & { x2: number, y2: number }
     // color?: number
     // origin?: { segment: Segment; t0: number; t1: number; };
@@ -11,11 +12,9 @@ export class Line implements Segment {
     constructor(x1: number, y1: number, x2: number, y2: number)
     constructor(...args: any[]) {
         if (args.length === 2) {
-            this.p1 = args[0]
-            this.p2 = args[1]
+            this.points = args
         } else {
-            this.p1 = { x: args[0], y: args[1] }
-            this.p2 = { x: args[2], y: args[3] }
+            this.points = [{ x: args[0], y: args[1] }, { x: args[2], y: args[3] }]
         }
 
         const dx = this.p2.x - this.p1.x;
@@ -26,11 +25,18 @@ export class Line implements Segment {
         }
     }
 
+    get p1() {
+        return this.points[0];
+    }
+    get p2() {
+        return this.points[1];
+    }
+
     get from() {
-        return this.p1;
+        return this.points[0];
     }
     get to() {
-        return this.p2;
+        return this.points[1];
     }
 
     bbox() {
@@ -227,5 +233,9 @@ export class Line implements Segment {
 
     toCmd(): PathCmd {
         return { type: 'L', x: this.p2.x, y: this.p2.y }
+    }
+
+    clone() {
+        return new Line(this.p1, this.p2)
     }
 }

@@ -18,6 +18,10 @@ export function point_eq(a: Point, b: Point) {
     return float_eq(a.x, b.x) && float_eq(a.y, b.y)
 }
 
+export function point_eq_strict(a: Point, b: Point) {
+    return (a.x === b.x) && (a.y === b.y)
+}
+
 export function point_eq6(a: Point, b: Point) {
     return float_eq6(a.x, b.x) && float_eq6(a.y, b.y)
 }
@@ -95,6 +99,9 @@ export type Segment = {
 
     reverse(): Segment;
     toCmd(): PathCmd;
+
+    clone(): Segment;
+    points: Point[]
 }
 
 

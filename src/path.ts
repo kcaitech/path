@@ -1,5 +1,5 @@
 import { Grid, SegmentNode } from "./grid";
-import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, Rect, reduice_bbox, Segment, splits } from "./basic";
+import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, point_eq_strict, Rect, reduice_bbox, Segment, splits } from "./basic";
 import { objectId } from "./objectid";
 import { Path1 } from "./path1";
 import { parsePath } from "./pathparser";
@@ -631,8 +631,18 @@ export class Path {
             path.start.y = from.y;
             path.isClose = true;
             path._segments = []
+            let prep = path.start;
             for (let j = 0, len = segs.length; j < len; ++j) {
-                const s = segs[j];
+                let s = segs[j];
+                if (j > 0 && !point_eq_strict(prep, s.from)) {
+                    s = s.clone();
+                    s.points[0] = prep;
+                }
+                if (j === len - 1 && !point_eq_strict(path.start, s.to)) {
+                    s = s.clone();
+                    s.points[s.points.length - 1] = path.start;
+                }
+                prep = s.to;
                 path._segments.push(s);
                 if (j === len - 1 && s.type === 'L') break;
                 path.cmds.push(s.toCmd())
@@ -677,8 +687,18 @@ export class Path {
             path.start.y = from.y;
             if (isClose) path.isClose = true;
             path._segments = []
+            let prep = path.start;
             for (let j = 0, len = segs.length; j < len; ++j) {
-                const s = segs[j];
+                let s = segs[j];
+                if (j > 0 && !point_eq_strict(prep, s.from)) {
+                    s = s.clone();
+                    s.points[0] = prep;
+                }
+                if (isClose && j === len - 1 && !point_eq_strict(path.start, s.to)) {
+                    s = s.clone();
+                    s.points[s.points.length - 1] = path.start;
+                }
+                prep = s.to;
                 path._segments.push(s);
                 if (isClose && j === len - 1 && s.type === 'L') break;
                 path.cmds.push(s.toCmd())

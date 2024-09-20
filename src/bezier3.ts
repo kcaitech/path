@@ -316,6 +316,8 @@ abstract class Bezier implements Segment {
     abstract reverse(): Bezier;
 
     abstract toCmd(): PathCmd;
+
+    abstract clone(): Bezier;
 }
 
 function searchCoincident(curve1: Bezier, curve2: Bezier): { t0: number, t1: number, t2: number, t3: number } | undefined {
@@ -567,6 +569,13 @@ export class Bezier2 extends Bezier {
         const p2 = this.points[2];
         return { type: 'Q', x: p2.x, y: p2.y, x1: p1.x, y1: p1.y }
     }
+
+    clone(): Bezier2 {
+        const p0 = this.points[0];
+        const p1 = this.points[1];
+        const p2 = this.points[2];
+        return new Bezier2(p0, p1, p2, this._extrema?.length === 0 ? [] : undefined)
+    }
 }
 
 export class Bezier3 extends Bezier {
@@ -779,5 +788,13 @@ export class Bezier3 extends Bezier {
         const p2 = this.points[2];
         const p3 = this.points[3];
         return { type: 'C', x: p3.x, y: p3.y, x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y }
+    }
+
+    clone(): Bezier3 {
+        const p0 = this.points[0];
+        const p1 = this.points[1];
+        const p2 = this.points[2];
+        const p3 = this.points[3];
+        return new Bezier3(p0, p1, p2, p3, this._extrema?.length === 0 ? [] : undefined)
     }
 }
