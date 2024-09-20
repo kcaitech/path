@@ -794,6 +794,8 @@ export class Path {
             }
         }
         this._paths.forEach(p => {
+            // transform修改了point的值，這些point在segment中是直接引用的，
+            // 所以transform后segment不能留了
             p._segments = undefined; // 简单重新生成
             p._bbox = undefined;
             const xy = matrix.computeCoord(p.start.x, p.start.y)
@@ -801,24 +803,23 @@ export class Path {
             p.start.y = xy.y
             p.cmds.forEach(transformCmd)
         })
+        this._grid = undefined; // 简单重新生成
     }
 
     // 提供个比transform更高效点的方法
     translate(x: number, y: number) {
         this._transform({ computeCoord: (_x: number, _y: number) => ({ x: _x + x, y: _y + y }) })
-        if (this._bbox) {
+        if (this._bbox) { // 還能用
             this._bbox.x += x
             this._bbox.y += y
             this._bbox.x2 += x
             this._bbox.y2 += y
         }
-        this._grid = undefined; // 简单重新生成
     }
 
     transform(matrix: { computeCoord: (x: number, y: number) => Point }) {
         this._transform(matrix)
         this._bbox = undefined;
-        this._grid = undefined; // 简单重新生成
     }
 
     freeze() {
