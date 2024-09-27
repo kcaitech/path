@@ -180,7 +180,7 @@ export class Normalizer {
     }
     getPaths() {
         return this.ctx.segs.reduce((p, c) => {
-            if (c.cmds.length > 1) p.push(c); // 过滤掉空路径
+            if (c.cmds.length > 0) p.push(c); // 过滤掉空路径
             return p;
         }, [] as Path1[]).map(p => {
             if (!p.isClose) {

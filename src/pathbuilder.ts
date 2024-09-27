@@ -52,7 +52,7 @@ export class PathBuilder {
     getPath() {
         const path = new Path();
         path._paths = this._paths.reduce((p, c) => {
-            if (c.cmds.length > 1) p.push(c); // 过滤掉空路径
+            if (c.cmds.length > 0) p.push(c); // 过滤掉空路径
             return p;
         }, [] as Path1[]).map(p => {
             if (!p.isClose) {
