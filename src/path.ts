@@ -334,12 +334,13 @@ export class Path {
             //     return ret;
             // }
             if (!node.childs) {
+                if (t0 === t1) return;
                 node[state] = true;
                 return [node];
             }
             const ret: SegmentNode[] = []
 
-            if (t0 < t1) {
+            if (t0 > t1) {
                 const t = t0;
                 t0 = t1;
                 t1 = t;
@@ -708,7 +709,8 @@ export class Path {
     }
 
     op(path: Path, type: OpType) {
-
+        console.log(type, 'type');
+        
         const { grid: _grid, subjectNodes, clipNodes } = this._op_prepare_grid(path);
 
         this._op_prepare_segments(clipNodes, _grid);
