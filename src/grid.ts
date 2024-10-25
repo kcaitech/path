@@ -54,7 +54,7 @@ const _evenodd = (grid: Grid, camp: PathCamp, ray: Line, side: 'left' | 'top' | 
         const coincident = ray.coincident(s);
         if (coincident) {
             // 算一个
-            ++count;
+            if (float_eq(coincident.t2, 0) || float_eq(coincident.t3, 0)) ++count;
             return;
         }
         const intersect = ray.intersect(s, true) as { type: "intersect"; t0: number; t1: number; }[];

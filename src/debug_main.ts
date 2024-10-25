@@ -50,15 +50,13 @@ import { PathBuilder } from "./pathbuilder";
 
 
 
-// const path0 = new Path('M0 0L100 0L100 100L0 100L0 0Z')
-// path0.translate(4, 0)
-// const path1 = new Path('M0 0L100 0L100 100L0 100L0 0Z')
-// path1.translate(4, 100)
-// const path2 = new Path('M0 0L100 0L100 100L0 100L0 0Z')
-// path2.translate(132, 125)
-// path0.op(path1, OpType.Union)
-
-// console.log(path0.toSVGString(), 'path1')
-// path0.op(path2, OpType.Union)
-
+const path0 = new Path('M50 100C77.58923888895069 100 100 77.58923888895069 100 50C100 22.4107611110493 77.58923888895069 0 50 0C22.4107611110493 0 0 22.4107611110493 0 50C0 77.58923888895069 22.4107611110493 100 50 100Z')
+const path1 = new Path('M50 100C77.58923888895069 100 100 77.58923888895069 100 50C100 22.4107611110493 77.58923888895069 0 50 0C22.4107611110493 0 0 22.4107611110493 0 50C0 77.58923888895069 22.4107611110493 100 50 100Z')
+const path2 = new Path('M0 0L100 0L100 100L0 100L0 0Z')
+// path2.translate(50, 50);
+path0.op(path1, OpType.Union);
+console.log(path0.toSVGString(), 'path1');
+// path0.op(path2, OpType.Xor);
+// console.log(path0.toSVGString(), 'path2');
+// path0.op(path3, OpType.Union)
 // console.log(path0.toSVGString(), 'path2')

@@ -93,20 +93,44 @@ export class Line implements Segment {
     locate(p: Point): number[] {
         const dx = this.p2.x - this.p1.x;
         const dy = this.p2.y - this.p1.y;
+        const fix = (t: number) => {
+            if (Math.abs(t) < float_accuracy) t = 0;
+            else if (Math.abs(t - 1) < float_accuracy) t = 1;
+            return t;
+        }
         if (dx === 0) { // 垂直竖线
             if (Math.abs(p.x - this.p1.x) > float_accuracy) return []
             const t = (p.y - this.p1.y) / dy;
-            if (t >= 0 && t <= 1) return [t]
+            if (t > -float_accuracy && t < 1 + float_accuracy) {
+                return [fix(t)]
+            }
         } else {
             const t = (p.x - this.p1.x) / dx;
-            if (t >= 0 && t <= 1) {
+            if (t > -float_accuracy && t < 1 + float_accuracy) {
                 const y = this.p1.y + dy * t;
-                if (Math.abs(p.y - y) < float_accuracy) return [t]
+                if (Math.abs(p.y - y) < float_accuracy) return [fix(t)]
             }
         }
         return []
     }
 
+    lineDirection(p1: Point, p2: Point) {
+        const v1x = this.p2.x - this.p1.x;
+        const v1y = this.p2.y - this.p1.y;
+        const v2x = p2.x - p1.x;
+        const v2y = p2.y - p1.y;
+
+        if (v1x * v2y === v1y * v2x) {
+            // 判断方向是否相反
+            return (v1x * v2x <= 0) && (v1y * v2y <= 0);
+        }
+        return false;
+    }
+
+    // 辅助函数判断两个点是否重合
+    pointsCoincident(p1: Point, p2: Point) {
+        return Math.abs(p1.x - p2.x) < float_accuracy && Math.abs(p1.y - p2.y) < float_accuracy;
+    }
     coincident(seg: Segment): { type: "coincident"; t0: number; t1: number; t2: number; t3: number; } | undefined {
         if (seg.type !== 'L') {
             const ret = seg.coincident(this);
@@ -138,10 +162,28 @@ export class Line implements Segment {
             if (l0.length > 0 && l1.length > 0) return { type: "coincident", t0: l0[0], t1: l1[0], t2: 0, t3: 1 }
             const l2 = rhs.locate(this.p1);
             const l3 = rhs.locate(this.p2);
+            // 包含
+            if (l2.length > 0 && l3.length > 0)
+                return { type: "coincident", t0: 0, t1: 1, t2: l2[0], t3: l3[0] };
+
+            // 添加对单个端点重合的处理
+            if (this.pointsCoincident(this.p1, rhs.p1) || this.pointsCoincident(this.p1, rhs.p2)) {
+                return; // 只有 p1 和 rhs 的某个端点重合
+            }
+            if (this.pointsCoincident(this.p2, rhs.p1) || this.pointsCoincident(this.p2, rhs.p2)) {
+                return; // 只有 p2 和 rhs 的某个端点重合
+            }
+
             // if (l2.length > 0 && l3.length > 0) return [{ type: "coincident", t0: 0, t1: 1, t2: l2[0], t3: l3[0] }]
             // 部分重合
             if ((l0.length > 0 || l1.length > 0) && (l2.length > 0 || l3.length > 0)) {
-                return { type: "coincident", t0: l0[0] ?? 0, t1: l1[0] ?? 1, t2: l2[0] ?? 0, t3: l3[0] ?? 1 }
+                const dir_opposite = this.lineDirection(p3, p4);
+                if (dir_opposite) {
+                    // 两条线方向相反
+                    return { type: "coincident", t0: l1[0] ?? 0, t1: l0[0] ?? 1, t2: l3[0] ?? 0, t3: l2[0] ?? 1 }
+                } else {
+                    return { type: "coincident", t0: l0[0] ?? 0, t1: l1[0] ?? 1, t2: l2[0] ?? 0, t3: l3[0] ?? 1 }
+                }
             }
             // 不重合。这个存疑
         }
@@ -191,10 +233,24 @@ export class Line implements Segment {
             if (l0.length > 0 && l1.length > 0) return [{ type: "coincident", t0: l0[0], t1: l1[0], t2: 0, t3: 1 }]
             const l2 = rhs.locate(this.p1);
             const l3 = rhs.locate(this.p2);
+
+            // 添加对单个端点重合的处理
+            if (this.pointsCoincident(this.p1, rhs.p1) || this.pointsCoincident(this.p1, rhs.p2)) {
+                return []; // 只有 p1 和 rhs 的某个端点重合
+            }
+            if (this.pointsCoincident(this.p2, rhs.p1) || this.pointsCoincident(this.p2, rhs.p2)) {
+                return []; // 只有 p2 和 rhs 的某个端点重合
+            }
             // if (l2.length > 0 && l3.length > 0) return [{ type: "coincident", t0: 0, t1: 1, t2: l2[0], t3: l3[0] }]
             // 部分重合
             if ((l0.length > 0 || l1.length > 0) && (l2.length > 0 || l3.length > 0)) {
-                return [{ type: "coincident", t0: l0[0] ?? 0, t1: l1[0] ?? 1, t2: l2[0] ?? 0, t3: l3[0] ?? 1 }]
+                const dir_opposite = this.lineDirection(p3, p4);
+                if (dir_opposite) {
+                    // 两条线方向相反
+                    return [{ type: "coincident", t0: l1[0] ?? 0, t1: l0[0] ?? 1, t2: l3[0] ?? 0, t3: l2[0] ?? 1 }]
+                } else {
+                    return [{ type: "coincident", t0: l0[0] ?? 0, t1: l1[0] ?? 1, t2: l2[0] ?? 0, t3: l3[0] ?? 1 }]
+                }
             }
             // 不重合。这个存疑
             return []

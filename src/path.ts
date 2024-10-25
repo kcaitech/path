@@ -1,5 +1,5 @@
 import { Grid, SegmentNode } from "./grid";
-import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, point_eq_strict, Rect, reduice_bbox, Segment, splits } from "./basic";
+import { contains_range, float_accuracy6, float_eq, intersect_rect, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, point_eq_strict, Rect, reduice_bbox, Segment, splits } from "./basic";
 import { objectId } from "./objectid";
 import { Path1 } from "./path1";
 import { parsePath } from "./pathparser";
@@ -398,9 +398,9 @@ export class Path {
     private _op_rm_segments(type: OpType, subjectNodes: SegmentNode[], clipNodes: SegmentNode[], _grid: Grid) {
         // evenodd
         // even true, odd false
-        const evenodd = (seg: SegmentNode, camp: PathCamp): boolean => {
+        const evenodd = (seg: SegmentNode, camp: PathCamp, side?: 'left' | 'top' | 'right' | 'bottom'): boolean => {
             const p = seg.seg.pointAt(0.5);
-            return _grid.evenodd(p, camp);
+            return _grid.evenodd(p, camp, side);
         }
 
         // 根据op标记removed segment
@@ -499,22 +499,44 @@ export class Path {
             }
         }
 
+        const subCoinjudge1 = (seg: SegmentNode) => {
+            // 奇偶一样 里
+            const p1 = seg.seg.points[0];
+            const p2 = seg.seg.points[1];
+            if (float_eq(p1.x, p2.x)) {
+                return evenodd(seg, PathCamp.Clip, 'left') === evenodd(seg, PathCamp.Subject, 'right');
+            } else {
+                return evenodd(seg, PathCamp.Clip, 'top') === evenodd(seg, PathCamp.Subject, 'bottom');
+            }
+        }
+        const subCoinjudge2 = (seg: SegmentNode) => {
+            // 不一样 外
+            const p = seg.seg.pointAt(0.5);
+            const p1 = seg.seg.points[0];
+            const p2 = seg.seg.points[1];
+            if (float_eq(p1.x, p2.x)) {
+                return evenodd(seg, PathCamp.Clip, 'left') !== evenodd(seg, PathCamp.Subject, 'right');
+            } else {
+                return evenodd(seg, PathCamp.Clip, 'top') !== evenodd(seg, PathCamp.Subject, 'bottom');
+            }
+        }
+
         switch (type) {
             case OpType.Difference:
                 rmDiff();
-                rmSubjectCoin(subjectNodes, coinjudge1);
+                rmSubjectCoin(subjectNodes, subCoinjudge2); //里留，外删
                 break;
             case OpType.Union:
                 rmUnion();
-                rmSubjectCoin(subjectNodes, coinjudge2);
+                rmSubjectCoin(subjectNodes, subCoinjudge1); //里删，外留
                 break;
             case OpType.Intersection:
                 rmIntersection();
-                rmSubjectCoin(subjectNodes, coinjudge2);
+                rmSubjectCoin(subjectNodes, subCoinjudge1);
                 break;
             case OpType.Xor:
                 rmDiff();
-                rmSubjectCoin(subjectNodes, coinjudge1);
+                rmSubjectCoin(subjectNodes, subCoinjudge2); //里留，外删
                 break;
         }
 
@@ -709,8 +731,6 @@ export class Path {
     }
 
     op(path: Path, type: OpType) {
-        console.log(type, 'type');
-        
         const { grid: _grid, subjectNodes, clipNodes } = this._op_prepare_grid(path);
 
         this._op_prepare_segments(clipNodes, _grid);

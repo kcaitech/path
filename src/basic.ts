@@ -47,7 +47,8 @@ export type Rect = {
 export enum OpType { Difference, Union, Intersection, Xor }
 
 export function intersect_range(lx0: number, lx1: number, rx0: number, rx1: number): boolean {
-    return lx0 === lx1 ? rx0 <= lx0 && lx0 <= rx1 : (rx0 === rx1 ? lx0 <= rx0 && rx0 <= lx1 : lx0 <= rx1 && lx1 >= rx0);
+    // return lx0 === lx1 ? rx0 <= lx0 && lx0 <= rx1 : (rx0 === rx1 ? lx0 <= rx0 && rx0 <= lx1 : lx0 <= rx1 && lx1 >= rx0);
+    return (lx0 <= rx1 && lx1 >= rx0);
 }
 
 export function contains_range(lx0: number, lx1: number, rx0: number, rx1: number): boolean {
