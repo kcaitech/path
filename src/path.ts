@@ -504,9 +504,9 @@ export class Path {
             const p1 = seg.seg.points[0];
             const p2 = seg.seg.points[1];
             if (float_eq(p1.x, p2.x)) {
-                return evenodd(seg, PathCamp.Clip, 'left') === evenodd(seg, PathCamp.Subject, 'right');
+                return evenodd(seg, PathCamp.Subject, 'left') === evenodd(seg, PathCamp.Subject, 'right');
             } else {
-                return evenodd(seg, PathCamp.Clip, 'top') === evenodd(seg, PathCamp.Subject, 'bottom');
+                return evenodd(seg, PathCamp.Subject, 'top') === evenodd(seg, PathCamp.Subject, 'bottom');
             }
         }
         const subCoinjudge2 = (seg: SegmentNode) => {
@@ -515,9 +515,9 @@ export class Path {
             const p1 = seg.seg.points[0];
             const p2 = seg.seg.points[1];
             if (float_eq(p1.x, p2.x)) {
-                return evenodd(seg, PathCamp.Clip, 'left') !== evenodd(seg, PathCamp.Subject, 'right');
+                return evenodd(seg, PathCamp.Subject, 'left') !== evenodd(seg, PathCamp.Subject, 'right');
             } else {
-                return evenodd(seg, PathCamp.Clip, 'top') !== evenodd(seg, PathCamp.Subject, 'bottom');
+                return evenodd(seg, PathCamp.Subject, 'top') !== evenodd(seg, PathCamp.Subject, 'bottom');
             }
         }
 
