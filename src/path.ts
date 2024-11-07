@@ -299,7 +299,7 @@ export class Path {
                 let pt = 0
                 ts.forEach((t, i) => {
                     const n = {
-                        t0: pt, t1: t, camp: node.camp, seg: childs[i]
+                        t0: pt, t1: t, camp: node.camp, seg: childs[i], coincident: node.coincident
                     }
                     node.childs!.push(n)
                     pt = t
@@ -318,10 +318,10 @@ export class Path {
             for (let i = 0, len = node.childs.length; i < len && ts.length > 0; ++i) {
                 const t = ts[0];
                 const c = node.childs[i];
-                if (t > c.t0 && t < c.t1) {
+                if (t > c.t0 && t < c.t1 && !float_eq(t, c.t0) && !float_eq(t, c.t1)) {
                     ts.unshift()
                     const sp = c.seg.split((t - c.t0) / (c.t1 - c.t0))
-                    node.childs.splice(i, 1, { t0: c.t0, t1: t, camp: c.camp, seg: sp[0] }, { t0: t, t1: c.t1, camp: c.camp, seg: sp[1] })
+                    node.childs.splice(i, 1, { t0: c.t0, t1: t, camp: c.camp, seg: sp[0], coincident: c.coincident }, { t0: t, t1: c.t1, camp: c.camp, seg: sp[1], coincident: c.coincident })
                     len = node.childs.length;
                 }
             }
@@ -504,20 +504,19 @@ export class Path {
             const p1 = seg.seg.points[0];
             const p2 = seg.seg.points[1];
             if (float_eq(p1.x, p2.x)) {
-                return evenodd(seg, PathCamp.Subject, 'left') === evenodd(seg, PathCamp.Subject, 'right');
+                return evenodd(seg, PathCamp.Clip, 'left') === evenodd(seg, PathCamp.Subject, 'right');
             } else {
-                return evenodd(seg, PathCamp.Subject, 'top') === evenodd(seg, PathCamp.Subject, 'bottom');
+                return evenodd(seg, PathCamp.Clip, 'top') === evenodd(seg, PathCamp.Subject, 'bottom');
             }
         }
         const subCoinjudge2 = (seg: SegmentNode) => {
             // 不一样 外
-            const p = seg.seg.pointAt(0.5);
             const p1 = seg.seg.points[0];
             const p2 = seg.seg.points[1];
             if (float_eq(p1.x, p2.x)) {
-                return evenodd(seg, PathCamp.Subject, 'left') !== evenodd(seg, PathCamp.Subject, 'right');
+                return evenodd(seg, PathCamp.Clip, 'left') !== evenodd(seg, PathCamp.Subject, 'right');
             } else {
-                return evenodd(seg, PathCamp.Subject, 'top') !== evenodd(seg, PathCamp.Subject, 'bottom');
+                return evenodd(seg, PathCamp.Clip, 'top') !== evenodd(seg, PathCamp.Subject, 'bottom');
             }
         }
 

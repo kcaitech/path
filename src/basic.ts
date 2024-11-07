@@ -48,15 +48,15 @@ export enum OpType { Difference, Union, Intersection, Xor }
 
 export function intersect_range(lx0: number, lx1: number, rx0: number, rx1: number): boolean {
     // return lx0 === lx1 ? rx0 <= lx0 && lx0 <= rx1 : (rx0 === rx1 ? lx0 <= rx0 && rx0 <= lx1 : lx0 <= rx1 && lx1 >= rx0);
-    return (lx0 <= rx1 && lx1 >= rx0);
+    return (lx0 < rx1 || float_eq(lx0, rx1)) && (lx1 > rx0 || float_eq(lx1, rx0));
 }
 
 export function contains_range(lx0: number, lx1: number, rx0: number, rx1: number): boolean {
-    return lx0 <= rx0 && lx1 >= rx1;
+    return (lx0 < rx0 || float_eq(lx0, rx0)) && (lx1 > rx1 || float_eq(lx1, rx1));
 }
 
 export function contains_point(lx0: number, lx1: number, rx0: number): boolean {
-    return lx0 <= rx0 && lx1 >= rx0;
+    return (lx0 < rx0 || float_eq(lx0, rx0)) && (lx1 > rx0 || float_eq(lx1, rx0));
 }
 
 export function intersect_rect(lhs: Rect, rhs: Rect): boolean {
@@ -165,7 +165,7 @@ export function solveCubicEquation(a: number, b: number, c: number, d: number): 
         x2 = t1 * Math.cos((phi + tau) / 3) - b / 3;
         x3 = t1 * Math.cos((phi + 2 * tau) / 3) - b / 3;
         roots = [x1, x2, x3];
-    } else if (discriminant === 0) {
+    } else if (float_eq(discriminant, 0)) {
         u1 = q2 < 0 ? crt(-q2) : -crt(q2);
         x1 = 2 * u1 - b / 3;
         x2 = -u1 - b / 3;

@@ -1,4 +1,4 @@
-import { contains_point, contains_rect, float_accuracy, intersect_range, intersect_rect, PathCmd, Point, Rect, Segment } from "./basic";
+import { contains_point, contains_rect, float_accuracy, float_eq, intersect_range, intersect_rect, PathCmd, Point, Rect, Segment } from "./basic";
 
 export class Line implements Segment {
     // p1: Point
@@ -64,7 +64,7 @@ export class Line implements Segment {
         if (contains_rect(rect, this.bbox())) return true;
         const dx = this.p2.x - this.p1.x;
 
-        if (dx === 0) { // 垂直竖线
+        if (float_eq(dx, 0)) { // 垂直竖线
             return contains_point(rect.x, rect.x + rect.w, this.p1.x) && intersect_range(rect.y, rect.y + rect.h, Math.min(this.p1.y, this.p2.y), Math.max(this.p1.y, this.p2.y));
         }
         const fix = function (t: number) {
@@ -98,7 +98,7 @@ export class Line implements Segment {
             else if (Math.abs(t - 1) < float_accuracy) t = 1;
             return t;
         }
-        if (dx === 0) { // 垂直竖线
+        if (float_eq(dx, 0)) { // 垂直竖线
             if (Math.abs(p.x - this.p1.x) > float_accuracy) return []
             const t = (p.y - this.p1.y) / dy;
             if (t > -float_accuracy && t < 1 + float_accuracy) {
@@ -120,9 +120,9 @@ export class Line implements Segment {
         const v2x = p2.x - p1.x;
         const v2y = p2.y - p1.y;
 
-        if (v1x * v2y === v1y * v2x) {
+        if (float_eq(v1x * v2y, v1y * v2x)) {
             // 判断方向是否相反
-            return (v1x * v2x <= 0) && (v1y * v2y <= 0);
+            return (v1x * v2x < 0 || float_eq(v1x * v2y, 0)) && (v1y * v2y < 0 || float_eq(v1y * v2y, 0));
         }
         return false;
     }
@@ -153,7 +153,7 @@ export class Line implements Segment {
             x4 = p4.x, y4 = p4.y;
         // line intersect
         const d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4); // 法向量
-        if (d === 0) {
+        if (float_eq(d, 0)) {
             // 平行且区间相交
             // 判断是否重合
             const l0 = this.locate(rhs.p1);
@@ -221,7 +221,7 @@ export class Line implements Segment {
             x4 = p4.x, y4 = p4.y;
         // line intersect
         const d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4); // 法向量
-        if (d === 0) {
+        if (float_eq(d, 0)) {
             if (noCoincident) {
                 return []
             }
