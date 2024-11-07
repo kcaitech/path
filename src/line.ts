@@ -122,7 +122,7 @@ export class Line implements Segment {
 
         if (float_eq(v1x * v2y, v1y * v2x)) {
             // 判断方向是否相反
-            return (v1x * v2x < 0 || float_eq(v1x * v2y, 0)) && (v1y * v2y < 0 || float_eq(v1y * v2y, 0));
+            return (v1x * v2x < 0 || float_eq(v1x * v2x, 0)) && (v1y * v2y < 0 || float_eq(v1y * v2y, 0));
         }
         return false;
     }
