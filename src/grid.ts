@@ -53,8 +53,12 @@ const _evenodd = (grid: Grid, camp: PathCamp, ray: Line, side: 'left' | 'top' | 
         }
         const coincident = ray.coincident(s);
         if (coincident) {
-            // 算一个
-            if (float_eq(coincident.t2, 0) || float_eq(coincident.t3, 0)) ++count;
+            // 跟头部重合算一个
+            if (float_eq(coincident.t2, 0) || float_eq(coincident.t3, 0)) {
+                // 例外：如果完全重合不算，因为下一个线段的头部会计算上
+                if (float_eq(coincident.t2, 1) || float_eq(coincident.t3, 1)) return
+                ++count;
+            }
             return;
         }
         const intersect = ray.intersect(s, true) as { type: "intersect"; t0: number; t1: number; }[];
