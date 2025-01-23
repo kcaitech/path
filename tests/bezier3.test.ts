@@ -1,5 +1,5 @@
 import { Line } from "../src/line";
-import { float_accuracy, float_eq, point_eq, solveCubicEquation } from "../src/basic";
+import { float_accuracy, float_eq, point_eq, point_eq6, solveCubicEquation } from "../src/basic";
 import { Bezier3 } from "../src/bezier3";
 
 describe(`bezier3`, () => {
@@ -175,7 +175,7 @@ describe(`bezier3`, () => {
         const pc2 = c2.pointAt(t1);
 
         // console.log(pc1, pc2)
-        expect(point_eq(pc1, pc2)).toBe(true);
+        expect(point_eq6(pc1, pc2)).toBe(true);
 
 
     })

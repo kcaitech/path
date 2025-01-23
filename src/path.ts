@@ -864,4 +864,38 @@ export class Path {
     toString() {
         return this.toSVGString();
     }
+
+    equals(path: Path, accuracy: number = float_accuracy6): boolean {
+        if (this._paths.length !== path._paths.length) return false
+        for (let i = 0, len = path._paths.length; i < len; ++i) {
+            const p1 = this._paths[i]
+            const p2 = path._paths[i]
+            if (p1.cmds.length !== p2.cmds.length) return false
+            if (p1.isClose !== p2.isClose) return false
+            for (let j = 0, len1 = p1.cmds.length; j < len1; ++j) {
+                const c1 = p1.cmds[j]
+                const c2 = p2.cmds[j]
+                if (c1.type !== c2.type) return false;
+                if (Math.abs(c1.x - c2.x) > accuracy) return false;
+                if (Math.abs(c1.y - c2.y) > accuracy) return false;
+                switch (c1.type) {
+                    case "L":
+                        break
+                    case "Q":
+                        if (c2.type !== "Q") throw new Error()
+                        if (Math.abs(c1.x1 - c2.x1) > accuracy) return false
+                        if (Math.abs(c1.y1 - c2.y1) > accuracy) return false
+                        break;
+                    case "C":
+                        if (c2.type !== "C") throw new Error()
+                        if (Math.abs(c1.x1 - c2.x1) > accuracy) return false
+                        if (Math.abs(c1.y1 - c2.y1) > accuracy) return false
+                        if (Math.abs(c1.x2 - c2.x2) > accuracy) return false
+                        if (Math.abs(c1.y2 - c2.y2) > accuracy) return false
+                        break;
+                }
+            }
+        }
+        return true
+    }
 }
