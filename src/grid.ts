@@ -1,4 +1,4 @@
-import { float_eq, PathCamp, Point, Rect, rect_contains_point, Segment } from "./basic"
+import { float_eq, PathCamp, Point, point_eq, Rect, rect_contains_point, Segment } from "./basic"
 import { Line } from "./line"
 import { objectId } from "./objectid"
 
@@ -29,16 +29,96 @@ const rayend = {
     bottom: (p: Point, grid: Grid) => { return { x: p.x, y: Math.max(p.y, grid.y + grid.h + 1) } }
 }
 
-const _evenodd = (grid: Grid, camp: PathCamp, ray: Line, side: 'left' | 'top' | 'right' | 'bottom', color: number): number => {
-    let count = 0;
+type EvenOdd = {
+    count: number,
+    in_left: number,
+    in_right: number,
+    out_left: number,
+    out_right: number
+}
+
+const ctrlPointOfBegin = (seg: Segment): Point | undefined => {
+    let i = seg.points.length - 2
+    let p = seg.points[i]
+    const last = seg.points[seg.points.length - 1]
+    while (i >= 0 && point_eq(p, last)) {
+        --i
+        p = seg.points[i]
+    }
+    return p
+}
+
+const ctrlPointOfEnd = (seg: Segment): Point | undefined => {
+    let i = 1
+    let p = seg.points[i]
+    const first = seg.points[0]
+    while (i < seg.points.length && point_eq(p, first)) {
+        ++i
+        p = seg.points[i]
+    }
+    return p
+}
+
+const calcZ = (p: Point, ray: Line) => {
+    const a = ray.from
+    const b = ray.to
+    const z = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
+    return z
+}
+
+const calcLR = (p: Point, ray: Line) => {
+    const z = calcZ(p, ray)
+    if (z > 0) { // left
+        return 'R' // 与y向上的坐标系是反过来的
+    } else if (z < 0) { // right
+        return 'L'
+    }
+}
+
+const calcLeftOrRightIn = (s: Segment, ray: Line) => {
+    const p = ctrlPointOfBegin(s)
+    if (!p) return // 退化为一个点
+    return calcLR(p, ray)
+}
+
+const calcLeftOrRightOut = (s: Segment, ray: Line) => {
+    const p = ctrlPointOfEnd(s)
+    if (!p) return // 退化为一个点
+    return calcLR(p, ray)
+}
+
+const mergeEvenOdd = (evenodd: EvenOdd): number => {
+    // 穿过的情况
+    let count = evenodd.count
+    const left_throuth = Math.min(evenodd.in_left, evenodd.out_right)
+    count += left_throuth
+    evenodd.in_left -= left_throuth
+    evenodd.out_right -= left_throuth
+    const right_throuth = Math.min(evenodd.in_right, evenodd.out_left)
+    count += right_throuth
+    evenodd.in_right -= right_throuth
+    evenodd.out_left -= right_throuth
+
+    // 其它
+    count += evenodd.in_left + evenodd.in_right + evenodd.out_left + evenodd.out_right
+    return count
+}
+
+const _evenodd = (grid: Grid, camp: PathCamp, ray: Line, side: 'left' | 'top' | 'right' | 'bottom', color: number): EvenOdd => {
+    const result: EvenOdd = { count: 0, in_left: 0, in_right: 0, out_left: 0, out_right: 0 }
     if (grid.items) {
         // const p = clampsidep[side](ray.p1, grid);
         const iter = grid.iterFrom(ray.p1);
         while (iter.item) {
-            count += _evenodd(iter.item, camp, ray, side, color);
+            const r = _evenodd(iter.item, camp, ray, side, color);
+            result.count += r.count
+            result.in_left += r.in_left
+            result.in_right += r.in_right
+            result.out_left += r.out_left
+            result.out_right += r.out_right
             iter[side]();
         }
-        return count;
+        return result;
     }
 
     const pending = grid.data.filter(d => d.camp === camp && d.color !== color);
@@ -53,19 +133,34 @@ const _evenodd = (grid: Grid, camp: PathCamp, ray: Line, side: 'left' | 'top' | 
         }
         const coincident = ray.coincident(s);
         if (coincident) {
-            // 跟头部重合算一个
-            if (float_eq(coincident.t2, 0) || float_eq(coincident.t3, 0)) {
-                // 例外：如果完全重合不算，因为下一个线段的头部会计算上
-                if (float_eq(coincident.t2, 1) || float_eq(coincident.t3, 1)) return
-                ++count;
-            }
-            return;
+            return
         }
         const intersect = ray.intersect(s, true) as { type: "intersect"; t0: number; t1: number; }[];
-        count += intersect.filter(i => !float_eq(i.t1, 1)).length; // 不包含p2
+        intersect.forEach(i => {
+            if (float_eq(i.t1, 0)) {
+                // out
+                const lr = calcLeftOrRightOut(s, ray)
+                if (lr === 'L') {
+                    result.out_left++
+                }
+                else if (lr === 'R') {
+                    result.out_right++
+                }
+            } else if (float_eq(i.t1, 1)) {
+                // in
+                const lr = calcLeftOrRightIn(s, ray)
+                if (lr === 'L') {
+                    result.in_left++
+                }
+                else if (lr === 'R') {
+                    result.in_right++
+                }
+            } else {
+                result.count++
+            }
+        })
     })
-
-    return count;
+    return result;
 }
 
 export class Grid implements Rect {
@@ -198,8 +293,8 @@ export class Grid implements Rect {
 
         const rayendp = rayend[side](p, this);
         const ray = new Line(p, rayendp)
-        const count = _evenodd(this, camp, ray, side, ++this.color)
-
+        const result = _evenodd(this, camp, ray, side, ++this.color)
+        const count = mergeEvenOdd(result);
         return count % 2 === 1
     }
 
