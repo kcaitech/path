@@ -158,11 +158,12 @@ export class Path {
 
         const _grid = this._grid;
         if (_grid) {
-            this._op_fix_grid();
-            path._paths.forEach(p => {
-                // 非close的路径不参与op
-                if (p.isClose) _grid.adds(p.segments(), p.bbox())
-            })
+            // this._op_fix_grid();
+            // path._paths.forEach(p => {
+            //     // 非close的路径不参与op
+            //     if (p.isClose) _grid.adds(p.segments(), p.bbox())
+            // })
+            this._grid_dirty = true;
         }
 
         if (this._bbox) {
