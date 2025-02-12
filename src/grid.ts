@@ -1,4 +1,4 @@
-import { float_eq, PathCamp, Point, point_eq, Rect, rect_contains_point, Segment } from "./basic"
+import { float_accuracy, float_eq, PathCamp, Point, point_eq, Rect, rect_contains_point, Segment } from "./basic"
 import { Line } from "./line"
 import { objectId } from "./objectid"
 
@@ -104,11 +104,29 @@ const mergeEvenOdd = (evenodd: EvenOdd): number => {
     return count
 }
 
+// 考虑float精度
+const _float_offset_p: { [key: string]: (p: Point) => Point } = {}
+_float_offset_p['left'] = function (p: Point) {
+    return { x: p.x + float_accuracy, y: p.y } // 往右偏移点
+}
+_float_offset_p['top'] = function (p: Point) {
+    return { x: p.x, y: p.y + float_accuracy } // 往下偏移点
+}
+_float_offset_p['right'] = function (p: Point) {
+    return { x: p.x - float_accuracy, y: p.y }  // 往左偏移点
+}
+_float_offset_p['bottom'] = function (p: Point) {
+    return { x: p.x, y: p.y - float_accuracy }  // 往上偏移点
+}
+const float_offset_p = (p: Point, side: 'left' | 'top' | 'right' | 'bottom') => {
+    return _float_offset_p[side](p)
+}
+
 const _evenodd = (grid: Grid, camp: PathCamp, ray: Line, side: 'left' | 'top' | 'right' | 'bottom', color: number): EvenOdd => {
     const result: EvenOdd = { count: 0, in_left: 0, in_right: 0, out_left: 0, out_right: 0 }
     if (grid.items) {
         // const p = clampsidep[side](ray.p1, grid);
-        const iter = grid.iterFrom(ray.p1);
+        const iter = grid.iterFrom(float_offset_p(ray.p1, side));
         while (iter.item) {
             const r = _evenodd(iter.item, camp, ray, side, color);
             result.count += r.count
@@ -206,13 +224,19 @@ export class Grid implements Rect {
         if (!this.items) return;
 
         const bbox = data.seg.bbox(); // 可以超出当前grid范围的
-        if (bbox.w === 0 && bbox.h === 0) return;
+        if (float_eq(bbox.w, 0) && float_eq(bbox.h, 0)) return;
 
-        const ci = Math.max(0, Math.floor((bbox.x - this.x) / this.col_w));
-        const ri = Math.max(0, Math.floor((bbox.y - this.y) / this.row_h));
+        // 考虑float误差
+        const x = bbox.x - float_accuracy
+        const y = bbox.y - float_accuracy
+        const r = bbox.x + bbox.w + float_accuracy
+        const b = bbox.y + bbox.h + float_accuracy
 
-        const ce = Math.min(this.col_count, Math.floor((bbox.x + bbox.w - this.x) / this.col_w + 1));
-        const re = Math.min(this.row_count, Math.floor((bbox.y + bbox.h - this.y) / this.row_h + 1));
+        const ci = Math.max(0, Math.floor((x - this.x) / this.col_w));
+        const ri = Math.max(0, Math.floor((y - this.y) / this.row_h));
+
+        const ce = Math.min(this.col_count, Math.floor((r - this.x) / this.col_w + 1));
+        const re = Math.min(this.row_count, Math.floor((b - this.y) / this.row_h + 1));
         const items = this.items;
         for (let i = ri; i < re; ++i) {
             for (let j = ci; j < ce; ++j) {
@@ -301,13 +325,18 @@ export class Grid implements Rect {
     private _add2item(data: SegmentNode) {
         const items = this.items!;
         const bbox = data.seg.bbox(); // 可以超出当前grid范围的
-        if (bbox.w === 0 && bbox.h === 0) return;
+        if (float_eq(bbox.w, 0) && float_eq(bbox.h, 0)) return;
 
-        const ci = Math.max(0, Math.floor((bbox.x - this.x) / this.col_w));
-        const ri = Math.max(0, Math.floor((bbox.y - this.y) / this.row_h));
+        // 考虑float误差
+        const x = bbox.x - float_accuracy
+        const y = bbox.y - float_accuracy
+        const r = bbox.x + bbox.w + float_accuracy
+        const b = bbox.y + bbox.h + float_accuracy
+        const ci = Math.max(0, Math.floor((x - this.x) / this.col_w));
+        const ri = Math.max(0, Math.floor((y - this.y) / this.row_h));
 
-        const ce = Math.min(this.col_count, Math.floor((bbox.x + bbox.w - this.x) / this.col_w + 1));
-        const re = Math.min(this.row_count, Math.floor((bbox.y + bbox.h - this.y) / this.row_h + 1));
+        const ce = Math.min(this.col_count, Math.floor((r - this.x) / this.col_w + 1));
+        const re = Math.min(this.row_count, Math.floor((b - this.y) / this.row_h + 1));
 
         for (let i = ri; i < re; ++i) {
             for (let j = ci; j < ce; ++j) {

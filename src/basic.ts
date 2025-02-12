@@ -46,17 +46,23 @@ export type Rect = {
 
 export enum OpType { Difference, Union, Intersection, Xor }
 
+function float_le(a: number, b: number) {
+    return a - b < float_accuracy
+}
+function float_ge(a: number, b: number) {
+    return a - b > -float_accuracy
+}
+
 export function intersect_range(lx0: number, lx1: number, rx0: number, rx1: number): boolean {
-    // return lx0 === lx1 ? rx0 <= lx0 && lx0 <= rx1 : (rx0 === rx1 ? lx0 <= rx0 && rx0 <= lx1 : lx0 <= rx1 && lx1 >= rx0);
-    return (lx0 < rx1 || float_eq(lx0, rx1)) && (lx1 > rx0 || float_eq(lx1, rx0));
+    return float_le(lx0, rx1) && float_ge(lx1, rx0); // 考虑float误差
 }
 
 export function contains_range(lx0: number, lx1: number, rx0: number, rx1: number): boolean {
-    return (lx0 < rx0 || float_eq(lx0, rx0)) && (lx1 > rx1 || float_eq(lx1, rx1));
+    return float_le(lx0, rx0) && float_ge(lx1, rx1);
 }
 
 export function contains_point(lx0: number, lx1: number, rx0: number): boolean {
-    return (lx0 < rx0 || float_eq(lx0, rx0)) && (lx1 > rx0 || float_eq(lx1, rx0));
+    return float_le(lx0, rx0) && float_ge(lx1, rx0);
 }
 
 export function intersect_rect(lhs: Rect, rhs: Rect): boolean {
