@@ -13,24 +13,23 @@
     "sourceMap": false,
     "baseUrl": "./",
     "types": [
-      "jest",
-      "node"
+      "node",
+      "jest"
     ],
     "paths": {},
     "lib": [
       "dom",
       "dom.iterable",
       "esnext"
-    ]
+    ],
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.tsx",
+    "src/**/*.tsx", 
+    "src/**/*.d.ts", "pathkit.d.ts", 
   ],
   "exclude": [
     "node_modules",
     "**/*.js",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
   ]
 }

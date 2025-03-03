@@ -3,7 +3,7 @@ import { contains_range, float_accuracy6, float_eq, intersect_rect, OpType, Path
 import { objectId } from "./objectid";
 import { Path1 } from "./path1";
 import { parsePath } from "./pathparser";
-
+import { dash, init, intersection, stroke, StrokeOpts } from "./pathkit";
 
 // 第一级是4*4，子级也都是4*4，最大层级4，最多可将区间分割成65536个区间
 // 实际第一级可能扩展
@@ -126,24 +126,10 @@ const joinsegments = (brokensegments: Map<number, Map<number, Segment[][]>>) => 
 
 export class Path {
 
-    constructor(path?: string) {
-        if (path) this._paths = parsePath(path);
-    }
-
-    static fromSVGString(path: string): Path {
-        return new Path(path);
-    }
-
     // color = 0
     _paths: Path1[] = []
 
     _bbox?: Rect & { x2: number, y2: number }
-    bbox() {
-        if (this._bbox) return this._bbox;
-        this._bbox = reduice_bbox(this._paths)
-        return this._bbox;
-    }
-
     // Bezier曲线，在极值点进行分割，则子路径的bbox就不再需要计算极值点
     // grid及其每个格子，完全包含内部segment，
     // 即segment加入到level 0的grid时，grid需要扩展; segment加入到格子里时需要分割
@@ -152,6 +138,28 @@ export class Path {
     // _subjectNodes?: SegmentNode[]
     // _clipNodes?: SegmentNode[]
     _grid_dirty?: boolean // 需要修复
+
+    constructor(path?: string) {
+        if (path) this._paths = parsePath(path);
+    }
+
+    static fromSVGString(path: string): Path {
+        return new Path(path);
+    }
+
+    reset(path: string) {
+        this._paths = parsePath(path);
+        this._bbox = undefined
+        this._grid = undefined
+        this._grid_dirty = undefined
+    }
+
+    bbox() {
+        if (this._bbox) return this._bbox;
+        this._bbox = reduice_bbox(this._paths)
+        return this._bbox;
+    }
+
 
     addPath(path: Path) {
         this._paths.push(...path._paths);
@@ -756,6 +764,21 @@ export class Path {
         this._grid_dirty = true;
     }
 
+    union(path: Path) {
+        return this.op(path, OpType.Union)
+    }
+    // subtract, diff
+    diff(path: Path) {
+        return this.op(path, OpType.Difference)
+    }
+    subtract(path: Path) {
+        return this.op(path, OpType.Difference)
+    }
+    intersection(path: Path) {
+        return this.op(path, OpType.Intersection)
+        // this.reset(intersection(this.toSVGString(), path.toSVGString()))
+    }
+
     clone() {
         const path = new Path()
         path._paths = this._paths.map(p => {
@@ -785,9 +808,9 @@ export class Path {
         return ret;
     }
 
-    private _transform(matrix: { computeCoord: (x: number, y: number) => Point }) {
+    private _transform(matrix: { map: (x: number, y: number) => Point }) {
         const transformCmd = (c: PathCmd) => {
-            const xy = matrix.computeCoord(c.x, c.y);
+            const xy = matrix.map(c.x, c.y);
             switch (c.type) {
                 case 'L': {
                     c.x = xy.x
@@ -795,8 +818,8 @@ export class Path {
                     break;
                 }
                 case 'C': {
-                    const xy1 = matrix.computeCoord(c.x1, c.y1);
-                    const xy2 = matrix.computeCoord(c.x2, c.y2);
+                    const xy1 = matrix.map(c.x1, c.y1);
+                    const xy2 = matrix.map(c.x2, c.y2);
                     c.x = xy.x
                     c.y = xy.y
                     c.x1 = xy1.x
@@ -806,7 +829,7 @@ export class Path {
                     break;
                 }
                 case 'Q': {
-                    const xy1 = matrix.computeCoord(c.x1, c.y1);
+                    const xy1 = matrix.map(c.x1, c.y1);
                     c.x = xy.x
                     c.y = xy.y
                     c.x1 = xy1.x
@@ -820,7 +843,7 @@ export class Path {
             // 所以transform后segment不能留了
             p._segments = undefined; // 简单重新生成
             p._bbox = undefined;
-            const xy = matrix.computeCoord(p.start.x, p.start.y)
+            const xy = matrix.map(p.start.x, p.start.y)
             p.start.x = xy.x
             p.start.y = xy.y
             p.cmds.forEach(transformCmd)
@@ -830,7 +853,7 @@ export class Path {
 
     // 提供个比transform更高效点的方法
     translate(x: number, y: number) {
-        this._transform({ computeCoord: (_x: number, _y: number) => ({ x: _x + x, y: _y + y }) })
+        this._transform({ map: (_x: number, _y: number) => ({ x: _x + x, y: _y + y }) })
         if (this._bbox) { // 還能用
             this._bbox.x += x
             this._bbox.y += y
@@ -839,7 +862,7 @@ export class Path {
         }
     }
 
-    transform(matrix: { computeCoord: (x: number, y: number) => Point }) {
+    transform(matrix: { map: (x: number, y: number) => Point }) {
         this._transform(matrix)
         this._bbox = undefined;
     }
@@ -860,6 +883,10 @@ export class Path {
 
     get length() {
         return this._paths.length;
+    }
+
+    get _str() {
+        return this.toSVGString()
     }
 
     toString() {
@@ -898,5 +925,26 @@ export class Path {
             }
         }
         return true
+    }
+
+    // todo
+    static async init() {
+        return init()
+    }
+
+    // todo
+    stroke(ops?: StrokeOpts): boolean {
+        // Path.init()
+        const ret = stroke(this.toSVGString(), ops)
+        if (ret) this.reset(ret)
+        return !!ret
+    }
+
+    // todo
+    dash(on: number, off: number, phase: number) {
+        // Path.init()
+        const ret = dash(this.toSVGString(), on, off, phase);
+        if (ret) this.reset(ret)
+        return !!ret
     }
 }
