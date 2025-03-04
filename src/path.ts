@@ -884,9 +884,9 @@ export class Path {
         return this._paths.length;
     }
 
-    get _str() {
-        return this.toSVGString()
-    }
+    // get _str() {
+    //     return this.toSVGString()
+    // }
 
     toString() {
         return this.toSVGString();

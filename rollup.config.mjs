@@ -45,7 +45,7 @@ export default [{
         wasmPlugin,
         typescript({ exclude: ["**/*.test.ts"] }),
         babel({ babelHelpers: 'bundled' }),
-        // terser(),
+        terser(),
     ],
     external: []
 }];
