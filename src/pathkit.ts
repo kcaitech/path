@@ -35,15 +35,15 @@ export interface StrokeOpts {
     cap?: Cap;
 }
 
-interface PathKitPath {
+interface IKitPath {
     toSVGString(): string;
-    op(path: PathKitPath, op: PathKitOp): boolean;
+    op(path: IKitPath, op: PathKitOp): boolean;
     delete(): void;
-    addPath(otherPath: PathKitPath): PathKitPath;
-    stroke(ops?: StrokeOpts): PathKitPath | null;
+    addPath(otherPath: IKitPath): IKitPath;
+    stroke(ops?: StrokeOpts): IKitPath | null;
     setFillType(type: FillType): void;
-    simplify(): PathKitPath | null;
-    dash(on: number, off: number, phase: number): PathKitPath | null;
+    simplify(): IKitPath | null;
+    dash(on: number, off: number, phase: number): IKitPath | null;
 }
 
 interface PathKit {
@@ -54,7 +54,7 @@ interface PathKit {
         XOR: PathKitOp.XOR,
         REVERSE_DIFFERENCE: PathKitOp.REVERSE_DIFFERENCE,
     }
-    FromSVGString(str: string): PathKitPath
+    FromSVGString(str: string): IKitPath
 }
 
 let _pathkit: PathKit;
@@ -69,8 +69,8 @@ export async function init() {
 
 export function difference(path0: string, path1: string): string {
     if (!_pathkit) throw Error("Not init");
-    const p0: PathKitPath = _pathkit.FromSVGString(path0);
-    const p1: PathKitPath = _pathkit.FromSVGString(path1);
+    const p0: IKitPath = _pathkit.FromSVGString(path0);
+    const p1: IKitPath = _pathkit.FromSVGString(path1);
     if (p0 && p1) {
         p0.op(p1, _pathkit.PathOp.XOR)
         const path = p0.toSVGString();
@@ -79,12 +79,14 @@ export function difference(path0: string, path1: string): string {
         return path;
     }
     console.log("difference op failed")
+    if (p0) p0.delete();
+    if (p1) p1.delete();
     return "";
 }
 export function intersection(path0: string, path1: string): string {
     if (!_pathkit) throw Error("Not init");
-    const p0: PathKitPath = _pathkit.FromSVGString(path0);
-    const p1: PathKitPath = _pathkit.FromSVGString(path1);
+    const p0: IKitPath = _pathkit.FromSVGString(path0);
+    const p1: IKitPath = _pathkit.FromSVGString(path1);
     if (p0 && p1) {
         p0.op(p1, _pathkit.PathOp.INTERSECT)
         const path = p0.toSVGString();
@@ -93,12 +95,14 @@ export function intersection(path0: string, path1: string): string {
         return path;
     }
     console.log("intersect op failed")
+    if (p0) p0.delete();
+    if (p1) p1.delete();
     return "";
 }
 export function subtract(path0: string, path1: string): string {
     if (!_pathkit) throw Error("Not init");
-    const p0: PathKitPath = _pathkit.FromSVGString(path0);
-    const p1: PathKitPath = _pathkit.FromSVGString(path1);
+    const p0: IKitPath = _pathkit.FromSVGString(path0);
+    const p1: IKitPath = _pathkit.FromSVGString(path1);
     if (p0 && p1) {
         p0.op(p1, _pathkit.PathOp.DIFFERENCE)
         const path = p0.toSVGString();
@@ -107,12 +111,14 @@ export function subtract(path0: string, path1: string): string {
         return path;
     }
     console.log("subtract op failed")
+    if (p0) p0.delete();
+    if (p1) p1.delete();
     return "";
 }
 export function union(path0: string, path1: string): string {
     if (!_pathkit) throw Error("Not init");
-    const p0: PathKitPath = _pathkit.FromSVGString(path0);
-    const p1: PathKitPath = _pathkit.FromSVGString(path1);
+    const p0: IKitPath = _pathkit.FromSVGString(path0);
+    const p1: IKitPath = _pathkit.FromSVGString(path1);
     if (p0 && p1) {
         p0.op(p1, _pathkit.PathOp.UNION)
         const path = p0.toSVGString();
@@ -121,6 +127,8 @@ export function union(path0: string, path1: string): string {
         return path;
     }
     console.log("union op failed")
+    if (p0) p0.delete();
+    if (p1) p1.delete();
     return "";
 }
 export function stroke(path: string, ops?: StrokeOpts): string | undefined {
@@ -139,7 +147,7 @@ export function stroke(path: string, ops?: StrokeOpts): string | undefined {
 
 export function noneZero2evenOdd(path: string): string | undefined {
     if (!_pathkit) throw Error("Not init");
-    const p0: PathKitPath = _pathkit.FromSVGString(path);
+    const p0: IKitPath = _pathkit.FromSVGString(path);
     p0.setFillType(FillType.WINDING);
     const p1 = p0.simplify(); // return this
     const ret = p1?.toSVGString();

@@ -1,9 +1,9 @@
 import { Grid, SegmentNode } from "./grid";
-import { contains_range, float_accuracy6, float_eq, intersect_rect, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, point_eq_strict, Rect, reduice_bbox, Segment, splits } from "./basic";
+import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, point_eq_strict, Rect, reduice_bbox, Segment, splits } from "./basic";
 import { objectId } from "./objectid";
 import { Path1 } from "./path1";
 import { parsePath } from "./pathparser";
-import { dash, init, intersection, stroke, StrokeOpts } from "./pathkit";
+import { dash, init, stroke, StrokeOpts } from "./pathkit";
 
 // 第一级是4*4，子级也都是4*4，最大层级4，最多可将区间分割成65536个区间
 // 实际第一级可能扩展
@@ -776,7 +776,6 @@ export class Path {
     }
     intersection(path: Path) {
         return this.op(path, OpType.Intersection)
-        // this.reset(intersection(this.toSVGString(), path.toSVGString()))
     }
 
     clone() {
@@ -934,7 +933,6 @@ export class Path {
 
     // todo
     stroke(ops?: StrokeOpts): boolean {
-        // Path.init()
         const ret = stroke(this.toSVGString(), ops)
         if (ret) this.reset(ret)
         return !!ret
@@ -942,7 +940,6 @@ export class Path {
 
     // todo
     dash(on: number, off: number, phase: number) {
-        // Path.init()
         const ret = dash(this.toSVGString(), on, off, phase);
         if (ret) this.reset(ret)
         return !!ret

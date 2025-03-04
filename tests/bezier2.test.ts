@@ -1,9 +1,28 @@
-import { float_accuracy } from "../src/basic";
+import { float_accuracy, float_eq } from "../src/basic";
 import { Bezier2 } from "../src/bezier3";
 
-describe(`bezier2`, () => {
-    test('extream', () => {
+// import { Bezier } from "../src/bezierjs/src/bezier"
 
+describe(`bezier2`, () => {
+    test('extrema', () => {
+        const points = [
+            {
+              x: 37.6308,
+              y: 38.4167,
+            },
+            {
+              x: -39.7065,
+              y: 257.219,
+            },
+            {
+              x: 37.8083,
+              y: 349.394,
+            },
+          ]
+          const bezier2 = new Bezier2(points[0], points[1], points[2])
+          const extrema = bezier2.extrema()
+          expect(extrema.length).toBe(1)
+          expect(float_eq(extrema[0], 0.4994268724802569)).toBe(true)
     })
     test('pointAt', () => {
         

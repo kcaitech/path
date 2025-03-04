@@ -415,7 +415,7 @@ export class Bezier2 extends Bezier {
     // _extrema?: number[]
     // Bzier2(t) = P0*(1-t)^2 + 2*P1*(1-t)*t + P2*t^2
     // Bzier2'(t) = 2*(1-t)*(P1-P0) + 2*t*(P2-P1) = 2*t*(P2-2*P1+P0)+2*(P1-P0) 直线方程.
-    // t = (P1-P0)/(P2-2*P1+P0)时取得极值
+    // t = (P0-P1)/(P2-2*P1+P0)时取得极值
     extrema() {
         if (this._extrema) return this._extrema;
         const p0 = this.points[0];
@@ -429,7 +429,7 @@ export class Bezier2 extends Bezier {
         const dy = d('y');
 
         const t = (dim: 'x' | 'y', d: number) => {
-            return (p1[dim] - p0[dim]) / d;
+            return (p0[dim] - p1[dim]) / d;
         }
         if (dx !== 0) ret.push(t('x', dx));
         if (dy !== 0) ret.push(t('y', dy));
