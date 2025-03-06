@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) vextra.io. All rights reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file.
+ */
+
 import { contains_point, contains_rect, float_accuracy, float_eq, intersect_range, intersect_rect, PathCmd, Point, Rect, Segment } from "./basic";
 
 export class Line implements Segment {

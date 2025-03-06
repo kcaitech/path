@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) vextra.io. All rights reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file.
+ */
+
 import { float_eq, PathCmd, Point, point_eq, Rect, reduice_bbox, Segment } from "./basic";
 import { Bezier2, Bezier3 } from "./bezier3";
 import { Line } from "./line";

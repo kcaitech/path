@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) vextra.io. All rights reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file.
+ */
+
 import { Line } from "../src/line";
 import { float_accuracy, float_eq, point_eq, point_eq6, solveCubicEquation } from "../src/basic";
 import { Bezier3 } from "../src/bezier3";

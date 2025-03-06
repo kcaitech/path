@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) vextra.io. All rights reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file.
+ */
+
 const newTestSet = [
 
     [[{ x: 130.0427549999999997, y: 11417.41309999999976 }, { x: 130.2331240000000037, y: 11418.3192999999992 }, { x: 131.0370790000000056, y: 11419 }, { x: 132, y: 11419 }]],

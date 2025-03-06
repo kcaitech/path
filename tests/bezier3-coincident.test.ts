@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) vextra.io. All rights reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file.
+ */
+
 const coinSet = [
     [[{ x: 72.350448608398438, y: 27.966041564941406 }, { x: 72.58441162109375, y: 27.861515045166016 },
     { x: 72.818222045898437, y: 27.756658554077148 }, { x: 73.394996643066406, y: 27.49799919128418 }]],

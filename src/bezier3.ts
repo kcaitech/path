@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) vextra.io. All rights reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file.
+ */
+
 import { Line } from "./line";
 import { alignX, float_accuracy, float_eq, intersect_rect, isLine, PathCmd, Point, points_eq, Rect, rect_contains_point, Segment, solveCubicEquation, solveQuadraticEquation, splits } from "./basic"
 import { binarySearch } from "./binarysearch";

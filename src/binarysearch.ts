@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) vextra.io. All rights reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file.
+ */
+
 import { float_accuracy, float_accuracy6, float_eq, intersect_rect, point_eq, Segment, splits } from "./basic";
 
 

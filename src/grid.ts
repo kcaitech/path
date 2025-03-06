@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) vextra.io. All rights reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file.
+ */
+
 import { float_accuracy, float_eq, PathCamp, Point, point_eq, Rect, rect_contains_point, Segment } from "./basic"
 import { Line } from "./line"
 import { objectId } from "./objectid"

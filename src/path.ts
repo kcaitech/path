@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) vextra.io. All rights reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file.
+ */
+
 import { Grid, SegmentNode } from "./grid";
 import { contains_range, float_accuracy6, float_eq, OpType, PathCamp, PathCmd, Point, point_eq, point_eq6, point_eq_strict, Rect, reduice_bbox, Segment, splits } from "./basic";
 import { objectId } from "./objectid";
