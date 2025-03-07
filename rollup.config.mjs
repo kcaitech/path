@@ -21,6 +21,7 @@ const wasmPlugin = {
     },
 };
 
+const isDevMode = process.env.NODE_ENV === 'dev';
 
 export default [{
     input: 'src/index.ts',
@@ -44,8 +45,8 @@ export default [{
         resolve(),
         wasmPlugin,
         typescript({ exclude: ["**/*.test.ts"] }),
-        babel({ babelHelpers: 'bundled' }),
-        terser(),
-    ],
+        !isDevMode && babel({ babelHelpers: 'bundled' }),
+        !isDevMode && terser(),
+    ].filter(Boolean),
     external: []
 }];

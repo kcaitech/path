@@ -11,7 +11,8 @@
         "registry": "https://packages.aliyun.com/6393d698d690c872dceedcc0/npm/npm-registry/"
     },
     "scripts": {
-        "dev": "tsc -w",
+        "debug": "tsc -w",
+        "dev": "NODE_ENV=dev rollup --config --watch",
         "build": "rollup --config",
         "test": "jest"
     },
