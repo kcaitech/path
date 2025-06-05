@@ -1,10 +1,10 @@
 # Path
 
-Path 是一个用于处理路径操作的 TypeScript 库，支持路径的 Difference（差集）、Union（并集）、Intersection（交集）、Xor（异或）操作。
+@kcaitech/path 是一个用于处理路径操作的 TypeScript 库，支持路径的 Difference（差集）、Union（并集）、Intersection（交集）、Xor（异或）操作。
 
 ## 安装
 
-你可以通过 npm 安装 PathOp：
+你可以通过 npm 安装 Path：
 
 ```bash
 npm install @kcaitech/path
@@ -12,7 +12,7 @@ npm install @kcaitech/path
 
 ## 示例
 ```ts
-import { Path, OpType } from 'pathop';
+import { Path, OpType } from '@kcaitech/path';
 
 const path0 = new Path('M0 0L100 0L100 100L0 100L0 0Z');
 const path1 = new Path('M100 50L150 50L150 150L50 150L50 100L0 100L0 0L100 0L100 50Z');

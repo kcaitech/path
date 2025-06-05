@@ -44,11 +44,12 @@
     "jest": {
         "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
         "moduleNameMapper": {
-            "@/(.*)$": "<rootDir>/$1"
+            "@/(.*)$": "<rootDir>/$1",
+            "\\.(wasm)$": "<rootDir>/tests/__mocks__/wasm-mock.js"
         },
         "testEnvironment": "node",
         "transformIgnorePatterns": [
-            "<rootDir>/node_modules/"
+            "<rootDir>/node_modules/(?!(pathkit-wasm)/)"
         ],
         "preset": "ts-jest",
         "transform": {

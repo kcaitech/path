@@ -1,17 +1,17 @@
 # Path
 
-PathOp is a TypeScript library for path operations, supporting Difference, Union, Intersection, and Xor operations between paths.
+@kcaitech/path is a TypeScript library for path operations, supporting Difference, Union, Intersection, and Xor operations between paths.
 
 ## Installation
 
-You can install PathOp via npm:
+You can install Path via npm:
 
 ```bash
 npm install @kcaitech/path
 
 ## Example
 ```ts
-import { Path, OpType } from 'pathop';
+import { Path, OpType } from '@kcaitech/path';
 
 const path0 = new Path('M0 0L100 0L100 100L0 100L0 0Z');
 const path1 = new Path('M100 50L150 50L150 150L50 150L50 100L0 100L0 0L100 0L100 50Z');
