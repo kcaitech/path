@@ -46,5 +46,24 @@ console.log(path1.toSVGString());
 
 * Xor: Exclusive OR operation.
 
+### TODO
+The stroke feature adds stroke effects to paths. Not yet implemented. Currently using PathKit's implementation as a replacement, which requires initialization before use:
+
+```ts
+// 初始化 PathKit
+await Path.init();
+
+// 创建路径
+const path = new Path('M0 0L100 0L100 100L0 100Z');
+
+// 添加描边
+const strokePath = path.stroke({
+    width: 10,
+    join: 'miter',
+    cap: 'butt',
+    miterLimit: 4
+});
+```
+
 ## LICENSE
 MIT

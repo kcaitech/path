@@ -47,5 +47,24 @@ console.log(path1.toSVGString());
 
 * Xor: 异或操作。
 
+### TODO
+stroke 功能用于给路径添加描边效果。还未实现。暂时使用PathKit的实现替换，使用前需要先初始化：
+
+```ts
+// 初始化 PathKit
+await Path.init();
+
+// 创建路径
+const path = new Path('M0 0L100 0L100 100L0 100Z');
+
+// 添加描边
+const strokePath = path.stroke({
+    width: 10,
+    join: 'miter', 
+    cap: 'butt',
+    miterLimit: 4
+});
+```
+
 ## LICENSE
 MIT
