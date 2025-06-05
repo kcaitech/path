@@ -1,9 +1,15 @@
 {
     "name": "@kcaitech/path",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "private": false,
     "description": "kcaitech path module",
     "author": "kcaitech.com",
+    "license": "MIT",
+    "keywords": [
+        "pathop",
+        "path manipulation",
+        "svg path"
+    ],
     "main": "./dist/index.cjs",
     "module": "./dist/index.js",
     "types": "./dist/types/index.d.ts",
