@@ -4,11 +4,11 @@
  */
 
 import { OpType } from "./basic";
-import { Bezier3 } from "./bezier3";
-import { utils } from "./bezierjs/src/utils";
-import { Line } from "./line";
+// import { Bezier3 } from "./bezier3";
+// import { utils } from "./bezierjs/src/utils";
+// import { Line } from "./line";
 import { Path } from "./path";
-import { PathBuilder } from "./pathbuilder";
+// import { PathBuilder } from "./pathbuilder";
 
 // vscode debug
 // 需要修改tsconfig.json
