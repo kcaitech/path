@@ -10,3 +10,4 @@ package-lock.json
 rollup.config.*
 .VSCodeCounter
 docs
+scripts

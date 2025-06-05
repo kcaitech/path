@@ -7,7 +7,7 @@ Path 是一个用于处理路径操作的 TypeScript 库，支持路径的 Diffe
 你可以通过 npm 安装 PathOp：
 
 ```bash
-npm install @vextra/path
+npm install @kcaitech/path
 ```
 
 ## 示例

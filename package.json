@@ -1,14 +1,22 @@
 {
-    "name": "@kcdesign/path",
-    "version": "0.0.17",
+    "name": "@kcaitech/path",
+    "version": "0.1.0",
     "private": false,
-    "description": "kcdesign path module",
+    "description": "kcaitech path module",
     "author": "kcaitech.com",
     "main": "./dist/index.cjs",
     "module": "./dist/index.js",
     "types": "./dist/types/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kcaitech/path.git"
+    },
     "publishConfig": {
-        "registry": "https://packages.aliyun.com/6393d698d690c872dceedcc0/npm/npm-registry/"
+        "registry": "https://registry.npmjs.org/",
+        "access": "public"
     },
     "scripts": {
         "debug": "tsc -w",

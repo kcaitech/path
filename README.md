@@ -7,7 +7,7 @@ PathOp is a TypeScript library for path operations, supporting Difference, Union
 You can install PathOp via npm:
 
 ```bash
-npm install @vextra/path
+npm install @kcaitech/path
 
 ## Example
 ```ts
